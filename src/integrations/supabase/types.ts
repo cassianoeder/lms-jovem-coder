@@ -44,6 +44,125 @@ export type Database = {
         }
         Relationships: []
       }
+      certificate_templates: {
+        Row: {
+          created_at: string | null
+          hours_load: number | null
+          id: string
+          is_active: boolean | null
+          min_attendance: number | null
+          min_score: number | null
+          name: string
+          signature_url: string | null
+          template_html: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hours_load?: number | null
+          id?: string
+          is_active?: boolean | null
+          min_attendance?: number | null
+          min_score?: number | null
+          name: string
+          signature_url?: string | null
+          template_html?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hours_load?: number | null
+          id?: string
+          is_active?: boolean | null
+          min_attendance?: number | null
+          min_score?: number | null
+          name?: string
+          signature_url?: string | null
+          template_html?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          class_id: string | null
+          course_id: string | null
+          course_name: string
+          hours_load: number | null
+          id: string
+          issued_at: string | null
+          module_id: string | null
+          pdf_url: string | null
+          score: number | null
+          student_name: string
+          template_id: string | null
+          user_id: string
+          validation_code: string
+        }
+        Insert: {
+          class_id?: string | null
+          course_id?: string | null
+          course_name: string
+          hours_load?: number | null
+          id?: string
+          issued_at?: string | null
+          module_id?: string | null
+          pdf_url?: string | null
+          score?: number | null
+          student_name: string
+          template_id?: string | null
+          user_id: string
+          validation_code: string
+        }
+        Update: {
+          class_id?: string | null
+          course_id?: string | null
+          course_name?: string
+          hours_load?: number | null
+          id?: string
+          issued_at?: string | null
+          module_id?: string | null
+          pdf_url?: string | null
+          score?: number | null
+          student_name?: string
+          template_id?: string | null
+          user_id?: string
+          validation_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           course_id: string | null
@@ -624,6 +743,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          cnpj: string | null
+          company_name: string | null
+          id: string
+          institutional_text: string | null
+          logo_url: string | null
+          platform_name: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          company_name?: string | null
+          id?: string
+          institutional_text?: string | null
+          logo_url?: string | null
+          platform_name?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          company_name?: string | null
+          id?: string
+          institutional_text?: string | null
+          logo_url?: string | null
+          platform_name?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       test_attempts: {
         Row: {
           completed_at: string | null
@@ -778,6 +930,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      generate_certificate_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
