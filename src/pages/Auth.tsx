@@ -5,12 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Code2, Mail, Lock, User, GraduationCap, Eye, EyeOff } from "lucide-react";
+import { Code2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-
-type AppRole = 'student' | 'teacher' | 'coordinator';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -30,7 +27,6 @@ const Auth = () => {
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
-  const [registerRole, setRegisterRole] = useState<AppRole | "">("");
 
   // Redirect if already logged in
   useEffect(() => {
@@ -39,7 +35,7 @@ const Auth = () => {
         student: '/student',
         teacher: '/teacher',
         coordinator: '/coordinator',
-        admin: '/coordinator',
+        admin: '/teacher',
       };
       navigate(roleRoutes[role] || '/student');
     }
@@ -71,19 +67,10 @@ const Auth = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!registerRole) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione seu perfil.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsLoading(true);
     
-    const { error } = await signUp(registerEmail, registerPassword, registerName, registerRole);
+    // Only students can self-register
+    const { error } = await signUp(registerEmail, registerPassword, registerName, 'student');
     
     if (error) {
       let errorMessage = error.message;
@@ -98,7 +85,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Conta criada!",
-        description: "Sua conta foi criada com sucesso.",
+        description: "Sua conta de aluno foi criada com sucesso.",
       });
     }
     
@@ -184,9 +171,15 @@ const Auth = () => {
                 </form>
               </TabsContent>
 
-              {/* Register Tab */}
+              {/* Register Tab - Only for Students */}
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4">
+                    <p className="text-sm text-primary">
+                      📚 Cadastro disponível apenas para alunos. Professores e coordenadores devem solicitar acesso ao administrador.
+                    </p>
+                  </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="register-name">Nome completo</Label>
                     <div className="relative">
@@ -243,25 +236,8 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="register-role">Eu sou</Label>
-                    <Select value={registerRole} onValueChange={(v) => setRegisterRole(v as AppRole)}>
-                      <SelectTrigger className="w-full">
-                        <div className="flex items-center gap-2">
-                          <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                          <SelectValue placeholder="Selecione seu perfil" />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="student">Aluno</SelectItem>
-                        <SelectItem value="teacher">Professor</SelectItem>
-                        <SelectItem value="coordinator">Coordenador</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <Button type="submit" className="w-full bg-gradient-primary hover:opacity-90" disabled={isLoading}>
-                    {isLoading ? "Criando conta..." : "Criar conta"}
+                    {isLoading ? "Criando conta..." : "Criar conta de Aluno"}
                   </Button>
                 </form>
               </TabsContent>
