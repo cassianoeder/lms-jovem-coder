@@ -165,6 +165,9 @@ export type Database = {
           id: string
           language: string | null
           lesson_id: string | null
+          solution_code: string | null
+          starter_code: string | null
+          test_cases: Json | null
           title: string
           type: string
           xp_reward: number | null
@@ -176,6 +179,9 @@ export type Database = {
           id?: string
           language?: string | null
           lesson_id?: string | null
+          solution_code?: string | null
+          starter_code?: string | null
+          test_cases?: Json | null
           title: string
           type: string
           xp_reward?: number | null
@@ -187,6 +193,9 @@ export type Database = {
           id?: string
           language?: string | null
           lesson_id?: string | null
+          solution_code?: string | null
+          starter_code?: string | null
+          test_cases?: Json | null
           title?: string
           type?: string
           xp_reward?: number | null
@@ -206,6 +215,7 @@ export type Database = {
           content: string | null
           course_id: string
           created_at: string
+          duration_minutes: number | null
           id: string
           order_index: number | null
           title: string
@@ -216,6 +226,7 @@ export type Database = {
           content?: string | null
           course_id: string
           created_at?: string
+          duration_minutes?: number | null
           id?: string
           order_index?: number | null
           title: string
@@ -226,6 +237,7 @@ export type Database = {
           content?: string | null
           course_id?: string
           created_at?: string
+          duration_minutes?: number | null
           id?: string
           order_index?: number | null
           title?: string
@@ -500,6 +512,127 @@ export type Database = {
         }
         Relationships: []
       }
+      test_attempts: {
+        Row: {
+          completed_at: string | null
+          id: string
+          score: number | null
+          started_at: string
+          test_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          score?: number | null
+          started_at?: string
+          test_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          score?: number | null
+          started_at?: string
+          test_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_attempts_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_questions: {
+        Row: {
+          exercise_id: string
+          id: string
+          order_index: number | null
+          points: number | null
+          test_id: string
+        }
+        Insert: {
+          exercise_id: string
+          id?: string
+          order_index?: number | null
+          points?: number | null
+          test_id: string
+        }
+        Update: {
+          exercise_id?: string
+          id?: string
+          order_index?: number | null
+          points?: number | null
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_questions_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_questions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tests: {
+        Row: {
+          available_from: string | null
+          available_until: string | null
+          class_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          max_attempts: number | null
+          teacher_id: string | null
+          time_limit_minutes: number | null
+          title: string
+        }
+        Insert: {
+          available_from?: string | null
+          available_until?: string | null
+          class_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_attempts?: number | null
+          teacher_id?: string | null
+          time_limit_minutes?: number | null
+          title: string
+        }
+        Update: {
+          available_from?: string | null
+          available_until?: string | null
+          class_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_attempts?: number | null
+          teacher_id?: string | null
+          time_limit_minutes?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tests_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -526,6 +659,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_role: {
+        Args: {
+          new_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
+        }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
