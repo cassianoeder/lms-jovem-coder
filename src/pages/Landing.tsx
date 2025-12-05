@@ -1,21 +1,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  Code2, 
-  Trophy, 
-  Users, 
-  Zap, 
-  Target, 
-  BookOpen, 
-  ArrowRight,
-  Star,
-  Flame,
-  Gamepad2
-} from "lucide-react";
-
+import { Code2, Trophy, Users, Zap, Target, BookOpen, ArrowRight, Star, Flame, Gamepad2 } from "lucide-react";
 const Landing = () => {
-  return (
-    <div className="min-h-screen bg-gradient-hero dark">
+  return <div className="min-h-screen bg-gradient-hero dark">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -29,7 +16,7 @@ const Landing = () => {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
             <a href="#how" className="text-muted-foreground hover:text-foreground transition-colors">Como Funciona</a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">Planos</a>
+            
           </div>
           
           <div className="flex items-center gap-3">
@@ -79,18 +66,29 @@ const Landing = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-            {[
-              { icon: Users, value: "10K+", label: "Alunos Ativos" },
-              { icon: BookOpen, value: "500+", label: "Exercícios" },
-              { icon: Trophy, value: "50+", label: "Conquistas" },
-              { icon: Star, value: "4.9", label: "Avaliação" },
-            ].map((stat, index) => (
-              <div key={index} className="glass rounded-2xl p-6 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+            {[{
+            icon: Users,
+            value: "10K+",
+            label: "Alunos Ativos"
+          }, {
+            icon: BookOpen,
+            value: "500+",
+            label: "Exercícios"
+          }, {
+            icon: Trophy,
+            value: "50+",
+            label: "Conquistas"
+          }, {
+            icon: Star,
+            value: "4.9",
+            label: "Avaliação"
+          }].map((stat, index) => <div key={index} className="glass rounded-2xl p-6 animate-fade-in" style={{
+            animationDelay: `${index * 0.1}s`
+          }}>
                 <stat.icon className="w-8 h-8 text-primary mx-auto mb-3" />
                 <div className="font-display text-3xl font-bold text-foreground">{stat.value}</div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -108,49 +106,39 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Zap,
-                title: "XP & Níveis",
-                description: "Ganhe pontos de experiência a cada exercício completado e suba de nível como em um RPG.",
-                gradient: "bg-gradient-xp",
-              },
-              {
-                icon: Flame,
-                title: "Sistema de Streak",
-                description: "Mantenha sua sequência de dias estudando e ganhe bônus especiais.",
-                gradient: "bg-gradient-streak",
-              },
-              {
-                icon: Trophy,
-                title: "Conquistas",
-                description: "Desbloqueie badges exclusivos ao completar desafios e marcos importantes.",
-                gradient: "bg-gradient-accent",
-              },
-              {
-                icon: Target,
-                title: "Missões Diárias",
-                description: "Novos desafios todos os dias para manter você motivado e progredindo.",
-                gradient: "bg-gradient-primary",
-              },
-              {
-                icon: Users,
-                title: "Rankings",
-                description: "Compita com outros alunos e veja sua posição no ranking global.",
-                gradient: "bg-gradient-accent",
-              },
-              {
-                icon: Code2,
-                title: "Editor de Código",
-                description: "Execute Python, JavaScript e SQL diretamente no navegador.",
-                gradient: "bg-gradient-primary",
-              },
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="glass rounded-2xl p-8 hover:scale-105 transition-transform duration-300 animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
+            {[{
+            icon: Zap,
+            title: "XP & Níveis",
+            description: "Ganhe pontos de experiência a cada exercício completado e suba de nível como em um RPG.",
+            gradient: "bg-gradient-xp"
+          }, {
+            icon: Flame,
+            title: "Sistema de Streak",
+            description: "Mantenha sua sequência de dias estudando e ganhe bônus especiais.",
+            gradient: "bg-gradient-streak"
+          }, {
+            icon: Trophy,
+            title: "Conquistas",
+            description: "Desbloqueie badges exclusivos ao completar desafios e marcos importantes.",
+            gradient: "bg-gradient-accent"
+          }, {
+            icon: Target,
+            title: "Missões Diárias",
+            description: "Novos desafios todos os dias para manter você motivado e progredindo.",
+            gradient: "bg-gradient-primary"
+          }, {
+            icon: Users,
+            title: "Rankings",
+            description: "Compita com outros alunos e veja sua posição no ranking global.",
+            gradient: "bg-gradient-accent"
+          }, {
+            icon: Code2,
+            title: "Editor de Código",
+            description: "Execute Python, JavaScript e SQL diretamente no navegador.",
+            gradient: "bg-gradient-primary"
+          }].map((feature, index) => <div key={index} className="glass rounded-2xl p-8 hover:scale-105 transition-transform duration-300 animate-fade-in" style={{
+            animationDelay: `${index * 0.1}s`
+          }}>
                 <div className={`w-14 h-14 rounded-xl ${feature.gradient} flex items-center justify-center mb-6`}>
                   <feature.icon className="w-7 h-7 text-white" />
                 </div>
@@ -160,8 +148,7 @@ const Landing = () => {
                 <p className="text-muted-foreground">
                   {feature.description}
                 </p>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -205,8 +192,6 @@ const Landing = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
