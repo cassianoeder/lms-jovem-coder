@@ -17,6 +17,8 @@ import {
   TrendingUp,
   Play,
   LogOut,
+  Users,
+  Award,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -375,39 +377,95 @@ const StudentDashboard = () => {
           </Card>
         </div>
 
-        {/* Continue Learning */}
-        <Card className="glass border-border/50 mt-6">
-          <CardHeader>
-            <CardTitle className="font-display flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              Continue Aprendendo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
-                      {course.image_url}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{course.title}</p>
-                      <p className="text-sm text-muted-foreground">{course.description?.slice(0, 30)}...</p>
-                    </div>
+        {/* Quick Actions */}
+        <div className="grid sm:grid-cols-3 gap-4 mt-6">
+          <Link to="/student/classes">
+            <Card className="glass border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-primary flex items-center justify-center">
+                    <Users className="w-7 h-7 text-white" />
                   </div>
-                  <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
-                    <Play className="w-4 h-4 mr-2" />
-                    Começar
-                  </Button>
+                  <div>
+                    <p className="font-display text-lg font-bold text-foreground">Explorar Turmas</p>
+                    <p className="text-sm text-muted-foreground">Encontre novas turmas</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/student/my-classes">
+            <Card className="glass border-border/50 hover:border-accent/50 transition-all cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-accent flex items-center justify-center">
+                    <BookOpen className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-display text-lg font-bold text-foreground">Minhas Turmas</p>
+                    <p className="text-sm text-muted-foreground">Continue estudando</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/student/certificates">
+            <Card className="glass border-border/50 hover:border-xp/50 transition-all cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-xp flex items-center justify-center">
+                    <Award className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-display text-lg font-bold text-foreground">Certificados</p>
+                    <p className="text-sm text-muted-foreground">Suas conquistas</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Continue Learning */}
+        {courses.length > 0 && (
+          <Card className="glass border-border/50 mt-6">
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Continue Aprendendo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
+                        {course.image_url}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{course.title}</p>
+                        <p className="text-sm text-muted-foreground">{course.description?.slice(0, 30)}...</p>
+                      </div>
+                    </div>
+                    <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
+                      <Play className="w-4 h-4 mr-2" />
+                      Começar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

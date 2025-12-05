@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, BookOpen, FileText, Code2, ChevronRight, LogOut, HelpCircle, UserCog, GraduationCap, Layers, School } from "lucide-react";
+import { Users, BookOpen, FileText, Code2, ChevronRight, LogOut, HelpCircle, UserCog, GraduationCap, Layers, School, Settings, Award } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -99,26 +99,51 @@ const TeacherDashboard = () => {
           ))}
         </div>
 
-        {isAdmin && (
-          <Card className="glass border-border/50 border-badge-gold/30">
+        <div className="grid sm:grid-cols-2 gap-4">
+          {isAdmin && (
+            <Card className="glass border-border/50 border-badge-gold/30">
+              <CardHeader>
+                <CardTitle className="font-display flex items-center gap-2">
+                  <UserCog className="w-5 h-5 text-badge-gold" />
+                  Administração
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Link to="/teacher/users">
+                  <Button className="bg-gradient-primary hover:opacity-90 w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Gerenciar Usuários
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <p className="text-sm text-muted-foreground mt-2">Cadastre professores e coordenadores</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="glass border-border/50">
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2">
-                <UserCog className="w-5 h-5 text-badge-gold" />
-                Administração
+                <Settings className="w-5 h-5 text-accent" />
+                Configurações
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Link to="/teacher/users">
-                <Button className="bg-gradient-primary hover:opacity-90">
-                  <Users className="w-4 h-4 mr-2" />
-                  Gerenciar Usuários
-                  <ChevronRight className="w-4 h-4 ml-2" />
+              <Link to="/teacher/settings">
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <Award className="w-4 h-4" />
+                    Certificados e Plataforma
+                  </span>
+                  <ChevronRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <p className="text-sm text-muted-foreground mt-2">Cadastre professores e coordenadores</p>
+              <p className="text-sm text-muted-foreground mt-2">Configure certificados e dados da empresa</p>
             </CardContent>
           </Card>
-        )}
+        </div>
       </main>
     </div>
   );
