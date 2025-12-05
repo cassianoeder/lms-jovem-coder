@@ -327,12 +327,12 @@ const ManageExercises = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Aula (opcional)</Label>
-                    <Select value={lessonId} onValueChange={setLessonId}>
+                    <Select value={lessonId || "none"} onValueChange={(v) => setLessonId(v === "none" ? "" : v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma</SelectItem>
+                        <SelectItem value="none">Nenhuma</SelectItem>
                         {lessons.map((lesson) => (
                           <SelectItem key={lesson.id} value={lesson.id}>
                             {lesson.title}
