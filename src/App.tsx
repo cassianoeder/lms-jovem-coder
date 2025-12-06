@@ -39,13 +39,13 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />
-            <Route path="/student/classes" element={<ProtectedRoute allowedRoles={['student']}><AvailableClasses /></ProtectedRoute>} />
-            <Route path="/student/my-classes" element={<ProtectedRoute allowedRoles={['student']}><MyClasses /></ProtectedRoute>} />
-            <Route path="/student/class/:classId" element={<ProtectedRoute allowedRoles={['student']}><ClassContent /></ProtectedRoute>} />
-            <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student']}><MyCertificates /></ProtectedRoute>} />
-            <Route path="/student/lesson/:lessonId" element={<ProtectedRoute allowedRoles={['student']}><LessonView /></ProtectedRoute>} />
-            <Route path="/student/exercise/:exerciseId" element={<ProtectedRoute allowedRoles={['student']}><ExerciseView /></ProtectedRoute>} />
+            <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentDashboard /></ProtectedRoute>} />
+            <Route path="/student/classes" element={<ProtectedRoute allowedRoles={['student', 'admin']}><AvailableClasses /></ProtectedRoute>} />
+            <Route path="/student/my-classes" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MyClasses /></ProtectedRoute>} />
+            <Route path="/student/class/:classId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ClassContent /></ProtectedRoute>} />
+            <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MyCertificates /></ProtectedRoute>} />
+            <Route path="/student/lesson/:lessonId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><LessonView /></ProtectedRoute>} />
+            <Route path="/student/exercise/:exerciseId" element={<ProtectedRoute allowedRoles={['student', 'admin']}><ExerciseView /></ProtectedRoute>} />
             <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><TeacherDashboard /></ProtectedRoute>} />
             <Route path="/teacher/classes" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageClasses /></ProtectedRoute>} />
             <Route path="/teacher/courses" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageCourses /></ProtectedRoute>} />
