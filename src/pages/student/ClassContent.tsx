@@ -174,19 +174,45 @@ const ClassContent = () => {
     return progress.some(p => p.exercise_id === exerciseId && p.completed);
   };
 
-  const isLessonAccessible = (lesson: Lesson) => {
-    // Check if this lesson belongs to an enrolled course
-    const lessonFull = allLessons.find(l => l.id === lesson.id) as any;
-    if (!lessonFull) return false;
-    return enrolledCourseIds.includes(lessonFull.course_id);
-  };
-
   const getModuleLessons = (moduleId: string) => {
-    return allLessons.filter(l => l.module_id === moduleId);
+    return allLessons
+      .filter(l => l.module_id === moduleId)
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   };
 
   const getLessonExercises = (lessonId: string) => {
     return allExercises.filter(e => e.lesson_id === lessonId);
+  };
+
+  // Check if a lesson is accessible based on sequential progress
+  const isLessonAccessible = (lesson: Lesson, moduleLessons: Lesson[]) => {
+    // Check if this lesson belongs to an enrolled course
+    const lessonFull = allLessons.find(l => l.id === lesson.id) as any;
+    if (!lessonFull) return false;
+    if (!enrolledCourseIds.includes(lessonFull.course_id)) return false;
+
+    // Find lesson index in the module
+    const lessonIndex = moduleLessons.findIndex(l => l.id === lesson.id);
+    
+    // First lesson is always accessible
+    if (lessonIndex === 0) return true;
+    
+    // Check if all previous lessons in the module are completed
+    for (let i = 0; i < lessonIndex; i++) {
+      const prevLesson = moduleLessons[i];
+      if (!isLessonCompleted(prevLesson.id)) {
+        return false;
+      }
+      // Also check if all exercises of previous lessons are completed
+      const prevExercises = getLessonExercises(prevLesson.id);
+      for (const ex of prevExercises) {
+        if (!isExerciseCompleted(ex.id)) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
   };
 
   const getModuleProgress = (moduleId: string) => {
@@ -329,11 +355,11 @@ const ClassContent = () => {
                           </AccordionTrigger>
                           <AccordionContent className="px-4 pb-4">
                             <div className="space-y-2 ml-16">
-                              {moduleLessons.map((lesson) => {
-                                const lessonFull = allLessons.find(l => l.id === lesson.id) as any;
-                                const isAccessible = lessonFull && enrolledCourseIds.includes(lessonFull.course_id);
+                              {moduleLessons.map((lesson, lessonIndex) => {
+                                const isAccessible = isLessonAccessible(lesson, moduleLessons);
                                 const completed = isLessonCompleted(lesson.id);
                                 const lessonExercises = getLessonExercises(lesson.id);
+                                const allExercisesCompleted = lessonExercises.every(e => isExerciseCompleted(e.id));
 
                                 return (
                                   <div key={lesson.id} className="space-y-1">
@@ -393,28 +419,30 @@ const ClassContent = () => {
                                       )}
                                     </div>
 
-                                    {/* Exercises for this lesson */}
                                     {lessonExercises.length > 0 && (
                                       <div className="ml-11 space-y-1">
-                                        {lessonExercises.map((exercise) => {
+                                        {lessonExercises.map((exercise, exIndex) => {
                                           const exCompleted = isExerciseCompleted(exercise.id);
+                                          // Exercise is accessible if lesson is accessible and all previous exercises are completed
+                                          const exAccessible = isAccessible && (exIndex === 0 || isExerciseCompleted(lessonExercises[exIndex - 1]?.id));
+                                          
                                           return (
                                             <div 
                                               key={exercise.id}
                                               className={`flex items-center gap-3 p-2 rounded-lg ${
-                                                isAccessible ? 'hover:bg-muted/30' : 'opacity-50'
+                                                exAccessible ? 'hover:bg-muted/30' : 'opacity-50'
                                               }`}
                                             >
                                               <div className={`w-6 h-6 rounded flex items-center justify-center ${
                                                 exCompleted 
                                                   ? 'bg-primary' 
-                                                  : isAccessible 
+                                                  : exAccessible 
                                                     ? 'bg-muted' 
                                                     : 'bg-muted/50'
                                               }`}>
                                                 {exCompleted ? (
                                                   <CheckCircle className="w-3 h-3 text-white" />
-                                                ) : isAccessible ? (
+                                                ) : exAccessible ? (
                                                   exercise.type === 'code' ? (
                                                     <FileCode className="w-3 h-3 text-muted-foreground" />
                                                   ) : (
@@ -425,17 +453,17 @@ const ClassContent = () => {
                                                 )}
                                               </div>
                                               <span className={`text-sm flex-1 ${
-                                                isAccessible ? 'text-foreground' : 'text-muted-foreground'
+                                                exAccessible ? 'text-foreground' : 'text-muted-foreground'
                                               }`}>
                                                 {exercise.title}
                                               </span>
                                               <Badge variant="secondary" className="text-xs bg-xp/10 text-xp">
                                                 +{exercise.xp_reward} XP
                                               </Badge>
-                                              {isAccessible && (
-                                                <Link to={`/student/exercise/${exercise.id}`}>
-                                                  <Button size="sm" variant="ghost" className="h-7">
-                                                    <Play className="w-3 h-3" />
+                                              {exAccessible && (
+                                                <Link to={`/student/exercise/${exercise.id}?lessonId=${lesson.id}`}>
+                                                  <Button size="sm" variant={exCompleted ? "ghost" : "default"} className={exCompleted ? "h-7" : "h-7 bg-gradient-primary"}>
+                                                    {exCompleted ? <Play className="w-3 h-3" /> : "Iniciar"}
                                                   </Button>
                                                 </Link>
                                               )}
