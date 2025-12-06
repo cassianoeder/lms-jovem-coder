@@ -12,6 +12,8 @@ import AvailableClasses from "./pages/student/AvailableClasses";
 import MyClasses from "./pages/student/MyClasses";
 import MyCertificates from "./pages/student/MyCertificates";
 import ClassContent from "./pages/student/ClassContent";
+import LessonView from "./pages/student/LessonView";
+import ExerciseView from "./pages/student/ExerciseView";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import ManageLessons from "./pages/teacher/ManageLessons";
 import ManageExercises from "./pages/teacher/ManageExercises";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/student/my-classes" element={<ProtectedRoute allowedRoles={['student']}><MyClasses /></ProtectedRoute>} />
             <Route path="/student/class/:classId" element={<ProtectedRoute allowedRoles={['student']}><ClassContent /></ProtectedRoute>} />
             <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student']}><MyCertificates /></ProtectedRoute>} />
+            <Route path="/student/lesson/:lessonId" element={<ProtectedRoute allowedRoles={['student']}><LessonView /></ProtectedRoute>} />
+            <Route path="/student/exercise/:exerciseId" element={<ProtectedRoute allowedRoles={['student']}><ExerciseView /></ProtectedRoute>} />
             <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><TeacherDashboard /></ProtectedRoute>} />
             <Route path="/teacher/classes" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageClasses /></ProtectedRoute>} />
             <Route path="/teacher/courses" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageCourses /></ProtectedRoute>} />
