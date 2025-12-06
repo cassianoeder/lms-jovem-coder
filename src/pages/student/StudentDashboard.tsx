@@ -19,6 +19,7 @@ import {
   LogOut,
   Users,
   Award,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,7 +151,7 @@ const StudentDashboard = () => {
             <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
               <Code2 className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold text-foreground">CodeQuest</span>
+            <span className="font-display text-lg font-bold text-foreground">JovemCoder</span>
           </Link>
 
           <div className="flex items-center gap-4">
@@ -172,7 +173,12 @@ const StudentDashboard = () => {
               <span className="text-sm font-medium text-level">Nível {xpData?.level || 1}</span>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+            <Link to="/">
+              <Button variant="ghost" size="icon" title="Página inicial">
+                <Home className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sair">
               <LogOut className="w-5 h-5" />
             </Button>
           </div>

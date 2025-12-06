@@ -3,18 +3,18 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, BookOpen, FileText, Code2, ChevronRight, LogOut, HelpCircle, UserCog, GraduationCap, Layers, School, Settings, Award } from "lucide-react";
+import { Users, BookOpen, FileText, Code2, ChevronRight, LogOut, HelpCircle, UserCog, GraduationCap, Layers, School, Settings, Award, Home } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const TeacherDashboard = () => {
   const { profile, role, signOut } = useAuth();
-  const [stats, setStats] = useState({ lessons: 0, exercises: 0, questions: 0, classes: 0, courses: 0, modules: 0, pendingRequests: 0 });
+  const [stats, setStats] = useState({ lessons: 0, exercises: 0, questions: 0, classes: 0, courses: 0, modules: 0, pendingRequests: 0, students: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [lessons, exercises, questions, classes, courses, modules, requests] = await Promise.all([
+      const [lessons, exercises, questions, classes, courses, modules, requests, students] = await Promise.all([
         supabase.from('lessons').select('*', { count: 'exact', head: true }),
         supabase.from('exercises').select('*', { count: 'exact', head: true }),
         supabase.from('questions').select('*', { count: 'exact', head: true }),
@@ -22,6 +22,7 @@ const TeacherDashboard = () => {
         supabase.from('courses').select('*', { count: 'exact', head: true }),
         supabase.from('modules').select('*', { count: 'exact', head: true }),
         supabase.from('enrollment_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('user_roles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
       ]);
       setStats({
         lessons: lessons.count || 0,
@@ -31,6 +32,7 @@ const TeacherDashboard = () => {
         courses: courses.count || 0,
         modules: modules.count || 0,
         pendingRequests: requests.count || 0,
+        students: students.count || 0,
       });
       setLoading(false);
     };
@@ -56,14 +58,25 @@ const TeacherDashboard = () => {
     <div className="min-h-screen bg-background dark">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
-              <Code2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-display text-lg font-bold text-foreground">CodeQuest</span>
-            <Badge variant="secondary" className="ml-2 bg-accent/10 text-accent">{isAdmin ? "Admin" : "Professor"}</Badge>
-          </Link>
-          <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="w-5 h-5" /></Button>
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
+                <Code2 className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display text-lg font-bold text-foreground">JovemCoder</span>
+            </Link>
+            <Badge variant="secondary" className="bg-accent/10 text-accent">{isAdmin ? "Admin" : "Professor"}</Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/">
+              <Button variant="ghost" size="icon" title="Página inicial">
+                <Home className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sair">
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -99,11 +112,29 @@ const TeacherDashboard = () => {
           ))}
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Gerenciar Alunos */}
+          <Link to="/teacher/students">
+            <Card className="glass border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-primary flex items-center justify-center">
+                    <Users className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-display text-2xl font-bold text-foreground">{stats.students}</p>
+                    <p className="text-muted-foreground">Alunos</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           {isAdmin && (
             <Card className="glass border-border/50 border-badge-gold/30">
-              <CardHeader>
-                <CardTitle className="font-display flex items-center gap-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-display flex items-center gap-2 text-base">
                   <UserCog className="w-5 h-5 text-badge-gold" />
                   Administração
                 </CardTitle>
@@ -118,14 +149,14 @@ const TeacherDashboard = () => {
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </Link>
-                <p className="text-sm text-muted-foreground mt-2">Cadastre professores e coordenadores</p>
+                <p className="text-xs text-muted-foreground mt-2">Cadastre professores e coordenadores</p>
               </CardContent>
             </Card>
           )}
 
           <Card className="glass border-border/50">
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-display flex items-center gap-2 text-base">
                 <Settings className="w-5 h-5 text-accent" />
                 Configurações
               </CardTitle>
@@ -140,7 +171,7 @@ const TeacherDashboard = () => {
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <p className="text-sm text-muted-foreground mt-2">Configure certificados e dados da empresa</p>
+              <p className="text-xs text-muted-foreground mt-2">Configure certificados e dados da empresa</p>
             </CardContent>
           </Card>
         </div>

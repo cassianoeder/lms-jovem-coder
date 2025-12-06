@@ -17,6 +17,7 @@ import ManageLessons from "./pages/teacher/ManageLessons";
 import ManageExercises from "./pages/teacher/ManageExercises";
 import ManageQuestions from "./pages/teacher/ManageQuestions";
 import ManageUsers from "./pages/teacher/ManageUsers";
+import ManageStudents from "./pages/teacher/ManageStudents";
 import ManageClasses from "./pages/teacher/ManageClasses";
 import ManageCourses from "./pages/teacher/ManageCourses";
 import ManageModules from "./pages/teacher/ManageModules";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/teacher/lessons" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageLessons /></ProtectedRoute>} />
             <Route path="/teacher/exercises" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageExercises /></ProtectedRoute>} />
             <Route path="/teacher/questions" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageQuestions /></ProtectedRoute>} />
+            <Route path="/teacher/students" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><ManageStudents /></ProtectedRoute>} />
             <Route path="/teacher/users" element={<ProtectedRoute allowedRoles={['admin']}><ManageUsers /></ProtectedRoute>} />
             <Route path="/teacher/settings" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><Settings /></ProtectedRoute>} />
             <Route path="/coordinator" element={<ProtectedRoute allowedRoles={['coordinator', 'admin']}><CoordinatorDashboard /></ProtectedRoute>} />
