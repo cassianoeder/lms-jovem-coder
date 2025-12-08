@@ -20,9 +20,11 @@ import {
   Users,
   Award,
   Home,
+  CheckCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useStudentLearningProgress } from "@/hooks/useStudentLearningProgress"; // New import
 
 interface StudentXP {
   total_xp: number;
@@ -34,12 +36,13 @@ interface Streak {
   longest_streak: number;
 }
 
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  image_url: string;
-}
+// Removed Course interface as it will be handled by useStudentLearningProgress
+// interface Course {
+//   id: string;
+//   title: string;
+//   description: string;
+//   image_url: string;
+// }
 
 interface StudentBadge {
   id: string;
@@ -66,10 +69,12 @@ const StudentDashboard = () => {
   const { profile, signOut } = useAuth();
   const [xpData, setXpData] = useState<StudentXP | null>(null);
   const [streakData, setStreakData] = useState<Streak | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
+  // const [courses, setCourses] = useState<Course[]>([]); // This state is no longer needed
   const [badges, setBadges] = useState<StudentBadge[]>([]);
   const [missions, setMissions] = useState<DailyMission[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { learningProgress, loading: learningProgressLoading } = useStudentLearningProgress(); // Use the new hook
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,13 +92,6 @@ const StudentDashboard = () => {
           .select('current_streak, longest_streak')
           .maybeSingle();
         setStreakData(streak);
-
-        // Fetch courses
-        const { data: coursesData } = await supabase
-          .from('courses')
-          .select('*')
-          .order('order_index');
-        setCourses(coursesData || []);
 
         // Fetch badges
         const { data: badgesData } = await supabase
@@ -134,7 +132,7 @@ const StudentDashboard = () => {
     await signOut();
   };
 
-  if (loading) {
+  if (loading || learningProgressLoading) { // Combine loading states
     return (
       <div className="min-h-screen bg-background dark flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -438,7 +436,7 @@ const StudentDashboard = () => {
         </div>
 
         {/* Continue Learning */}
-        {courses.length > 0 && (
+        {learningProgress.length > 0 && (
           <Card className="glass border-border/50 mt-6">
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2">
@@ -448,24 +446,48 @@ const StudentDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {courses.map((course) => (
+                {learningProgress.map((item) => (
                   <div
-                    key={course.id}
+                    key={item.courseId}
                     className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors group cursor-pointer"
                   >
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
-                        {course.image_url}
+                        {item.courseImageUrl?.startsWith('http') ? (
+                          <img src={item.courseImageUrl} alt={item.courseTitle} className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                          item.courseImageUrl || "📚"
+                        )}
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-foreground">{course.title}</p>
-                        <p className="text-sm text-muted-foreground">{course.description?.slice(0, 30)}...</p>
+                        <p className="font-medium text-foreground">{item.courseTitle}</p>
+                        {item.nextLesson ? (
+                          <p className="text-sm text-muted-foreground">Próxima: {item.nextLesson.title}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Todas as aulas concluídas!</p>
+                        )}
                       </div>
                     </div>
-                    <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
-                      <Play className="w-4 h-4 mr-2" />
-                      Começar
-                    </Button>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-muted-foreground">Progresso do Curso</span>
+                        <span className="font-medium text-foreground">{item.progressPercentage}%</span>
+                      </div>
+                      <Progress value={item.progressPercentage} className="h-2" />
+                    </div>
+                    {item.nextLesson ? (
+                      <Link to={`/student/lesson/${item.nextLesson.id}`}>
+                        <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
+                          <Play className="w-4 h-4 mr-2" />
+                          Continuar Aula
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button disabled className="w-full mt-4" variant="outline">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Curso Concluído
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
