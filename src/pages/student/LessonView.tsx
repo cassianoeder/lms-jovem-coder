@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { checkAndIssueModuleCertificate } from "@/utils/certificateUtils"; // Import the new utility
 
 interface Lesson {
   id: string;
@@ -179,7 +180,8 @@ const LessonView = () => {
         .select('completed')
         .eq('user_id', user.id)
         .eq('lesson_id', lessonId)
-        .single();
+        .maybeSingle(); // Use maybeSingle as it might not exist
+
       setIsCompleted(lessonProgress?.completed || false);
 
       setLoading(false);
@@ -233,7 +235,7 @@ const LessonView = () => {
       .from('student_xp')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle(); // Use maybeSingle as it might not exist
 
     if (xpData) {
       await supabase
@@ -256,6 +258,12 @@ const LessonView = () => {
     setIsCompleted(true);
     setCompleting(false);
     toast.success(`Aula concluída! +${lesson.xp_reward} XP`);
+
+    // --- NEW: Check and issue module certificate ---
+    if (lesson.module_id && lesson.course_id) {
+      await checkAndIssueModuleCertificate(user.id, lesson.module_id, lesson.course_id);
+    }
+    // --- END NEW ---
   };
 
   const isExerciseAccessible = (index: number) => {

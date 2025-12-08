@@ -8,8 +8,7 @@ import {
   Flame,
   Zap,
   Trophy,
-  Target,
-  BookOpen,
+  BookOpen, // Target icon removed
   Code2,
   ChevronRight,
   Star,
@@ -24,7 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useStudentLearningProgress } from "@/hooks/useStudentLearningProgress"; // New import
+import { useStudentLearningProgress } from "@/hooks/useStudentLearningProgress";
 
 interface StudentXP {
   total_xp: number;
@@ -36,14 +35,6 @@ interface Streak {
   longest_streak: number;
 }
 
-// Removed Course interface as it will be handled by useStudentLearningProgress
-// interface Course {
-//   id: string;
-//   title: string;
-//   description: string;
-//   image_url: string;
-// }
-
 interface StudentBadge {
   id: string;
   earned_at: string;
@@ -54,27 +45,27 @@ interface StudentBadge {
   };
 }
 
-interface DailyMission {
-  id: string;
-  title: string;
-  target_count: number;
-  xp_reward: number;
-  student_missions: {
-    progress: number;
-    completed: boolean;
-  }[];
-}
+// DailyMission interface removed as it's no longer needed
+// interface DailyMission {
+//   id: string;
+//   title: string;
+//   target_count: number;
+//   xp_reward: number;
+//   student_missions: {
+//     progress: number;
+//     completed: boolean;
+//   }[];
+// }
 
 const StudentDashboard = () => {
   const { profile, signOut } = useAuth();
   const [xpData, setXpData] = useState<StudentXP | null>(null);
   const [streakData, setStreakData] = useState<Streak | null>(null);
-  // const [courses, setCourses] = useState<Course[]>([]); // This state is no longer needed
   const [badges, setBadges] = useState<StudentBadge[]>([]);
-  const [missions, setMissions] = useState<DailyMission[]>([]);
+  // missions state removed
   const [loading, setLoading] = useState(true);
 
-  const { learningProgress, loading: learningProgressLoading } = useStudentLearningProgress(); // Use the new hook
+  const { learningProgress, loading: learningProgressLoading } = useStudentLearningProgress();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,18 +92,7 @@ const StudentDashboard = () => {
           .limit(3);
         setBadges(badgesData as StudentBadge[] || []);
 
-        // Fetch daily missions with progress
-        const { data: missionsData } = await supabase
-          .from('daily_missions')
-          .select(`
-            id,
-            title,
-            target_count,
-            xp_reward,
-            student_missions(progress, completed)
-          `)
-          .eq('active', true);
-        setMissions(missionsData as DailyMission[] || []);
+        // Daily missions fetching logic removed
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -132,7 +112,7 @@ const StudentDashboard = () => {
     await signOut();
   };
 
-  if (loading || learningProgressLoading) { // Combine loading states
+  if (loading || learningProgressLoading) {
     return (
       <div className="min-h-screen bg-background dark flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -278,63 +258,9 @@ const StudentDashboard = () => {
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Daily Missions */}
-          <Card className="glass border-border/50 lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="font-display flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" />
-                Missões Diárias
-              </CardTitle>
-              <Badge variant="secondary" className="bg-primary/10 text-primary">
-                <Calendar className="w-3 h-3 mr-1" />
-                Hoje
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {missions.length > 0 ? missions.map((mission) => {
-                const progress = mission.student_missions?.[0]?.progress || 0;
-                const completed = mission.student_missions?.[0]?.completed || false;
-                return (
-                  <div
-                    key={mission.id}
-                    className={`p-4 rounded-xl border ${
-                      completed ? "bg-primary/5 border-primary/20" : "bg-card border-border/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        {completed ? (
-                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                            <span className="text-white text-sm">✓</span>
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-muted-foreground text-sm">
-                              {progress}/{mission.target_count}
-                            </span>
-                          </div>
-                        )}
-                        <span className={`font-medium ${completed ? "text-primary" : "text-foreground"}`}>
-                          {mission.title}
-                        </span>
-                      </div>
-                      <Badge variant="secondary" className="bg-xp/10 text-xp">
-                        +{mission.xp_reward} XP
-                      </Badge>
-                    </div>
-                    {!completed && (
-                      <Progress value={(progress / mission.target_count) * 100} className="h-2" />
-                    )}
-                  </div>
-                );
-              }) : (
-                <p className="text-muted-foreground text-center py-4">Nenhuma missão disponível</p>
-              )}
-            </CardContent>
-          </Card>
-
+          {/* Daily Missions section removed */}
           {/* Recent Badges */}
-          <Card className="glass border-border/50">
+          <Card className="glass border-border/50 lg:col-span-1"> {/* Adjusted col-span */}
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-badge-gold" />
@@ -379,6 +305,65 @@ const StudentDashboard = () => {
               </Button>
             </CardContent>
           </Card>
+          {/* Continue Learning section now takes more space */}
+          {learningProgress.length > 0 && (
+            <Card className="glass border-border/50 lg:col-span-2"> {/* Adjusted col-span */}
+              <CardHeader>
+                <CardTitle className="font-display flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  Continue Aprendendo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-2 gap-4"> {/* Adjusted grid for 2 columns */}
+                  {learningProgress.map((item) => (
+                    <div
+                      key={item.courseId}
+                      className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
+                          {item.courseImageUrl?.startsWith('http') ? (
+                            <img src={item.courseImageUrl} alt={item.courseTitle} className="w-full h-full object-cover rounded-xl" />
+                          ) : (
+                            item.courseImageUrl || "📚"
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground">{item.courseTitle}</p>
+                          {item.nextLesson ? (
+                            <p className="text-sm text-muted-foreground">Próxima: {item.nextLesson.title}</p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Todas as aulas concluídas!</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Progresso do Curso</span>
+                          <span className="font-medium text-foreground">{item.progressPercentage}%</span>
+                        </div>
+                        <Progress value={item.progressPercentage} className="h-2" />
+                      </div>
+                      {item.nextLesson ? (
+                        <Link to={`/student/lesson/${item.nextLesson.id}`}>
+                          <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
+                            <Play className="w-4 h-4 mr-2" />
+                            Continuar Aula
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button disabled className="w-full mt-4" variant="outline">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Curso Concluído
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -434,66 +419,6 @@ const StudentDashboard = () => {
             </Card>
           </Link>
         </div>
-
-        {/* Continue Learning */}
-        {learningProgress.length > 0 && (
-          <Card className="glass border-border/50 mt-6">
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                Continue Aprendendo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {learningProgress.map((item) => (
-                  <div
-                    key={item.courseId}
-                    className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
-                        {item.courseImageUrl?.startsWith('http') ? (
-                          <img src={item.courseImageUrl} alt={item.courseTitle} className="w-full h-full object-cover rounded-xl" />
-                        ) : (
-                          item.courseImageUrl || "📚"
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">{item.courseTitle}</p>
-                        {item.nextLesson ? (
-                          <p className="text-sm text-muted-foreground">Próxima: {item.nextLesson.title}</p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Todas as aulas concluídas!</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Progresso do Curso</span>
-                        <span className="font-medium text-foreground">{item.progressPercentage}%</span>
-                      </div>
-                      <Progress value={item.progressPercentage} className="h-2" />
-                    </div>
-                    {item.nextLesson ? (
-                      <Link to={`/student/lesson/${item.nextLesson.id}`}>
-                        <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
-                          <Play className="w-4 h-4 mr-2" />
-                          Continuar Aula
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button disabled className="w-full mt-4" variant="outline">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Curso Concluído
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </main>
     </div>
   );

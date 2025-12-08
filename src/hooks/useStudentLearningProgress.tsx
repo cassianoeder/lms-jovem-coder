@@ -95,21 +95,21 @@ export const useStudentLearningProgress = () => {
         const { data: progressData, error: progressError } = await supabase
           .from('student_progress')
           .select('lesson_id, exercise_id, completed')
-          .eq('user.id', user.id);
+          .eq('user_id', user.id);
 
         if (progressError) throw progressError;
 
         const completedLessons = new Set(progressData?.filter(p => p.lesson_id && p.completed).map(p => p.lesson_id));
         const completedExercises = new Set(progressData?.filter(p => p.exercise_id && p.completed).map(p => p.exercise_id));
 
-        // FIX 1: Explicitly type the accumulator in the reduce function
-        const exercisesByLesson = exercisesData?.reduce<Record<string, string[]>>((acc, ex) => {
+        // FIX 1: Explicitly type the accumulator in the reduce function and ensure exercisesData is an array
+        const exercisesByLesson = (exercisesData || []).reduce<Record<string, string[]>>((acc, ex) => {
           if (ex.lesson_id) {
             if (!acc[ex.lesson_id]) acc[ex.lesson_id] = [];
             acc[ex.lesson_id].push(ex.id);
           }
           return acc;
-        }, {}) || {};
+        }, {});
 
         const results: NextLearningItem[] = [];
 
