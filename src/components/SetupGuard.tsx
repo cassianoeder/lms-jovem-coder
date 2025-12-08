@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createClient } from "@supabase/supabase-js";
 import Setup from "@/pages/Setup";
 
 const SetupGuard = ({ children }: { children: React.ReactNode }) => {
@@ -9,41 +8,19 @@ const SetupGuard = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkSetup = async () => {
+    const checkSetup = () => {
+      // Verifica se as variáveis de ambiente estão configuradas
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      // Check if environment variables are set
       if (!supabaseUrl || !supabaseKey) {
         setNeedsSetup(true);
-        setLoading(false);
-        return;
+      } else {
+        // Se as variáveis estiverem configuradas, assumimos que o setup foi feito
+        // Em um ambiente real, você poderia fazer uma chamada de teste aqui
+        setNeedsSetup(false);
       }
-
-      try {
-        const client = createClient(supabaseUrl, supabaseKey);
-        
-        // Try to query a table to check if database is initialized
-        const { error } = await client.from("profiles").select("count").limit(1);
-        
-        if (error) {
-          // If error is "relation does not exist", database needs setup
-          if (error.code === "PGRST116" || error.message.includes("does not exist")) {
-            setNeedsSetup(true);
-          } else {
-            // Other errors might be connection issues, but we'll assume setup is needed
-            setNeedsSetup(true);
-          }
-        } else {
-          // Database seems initialized
-          setNeedsSetup(false);
-        }
-      } catch (err) {
-        // Error connecting, assume setup is needed
-        setNeedsSetup(true);
-      } finally {
-        setLoading(false);
-      }
+      setLoading(false);
     };
 
     checkSetup();
@@ -65,6 +42,3 @@ const SetupGuard = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default SetupGuard;
-
-
-

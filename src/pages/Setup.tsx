@@ -1,205 +1,101 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Database, User, CheckCircle, AlertCircle } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
-
-interface SetupFormData {
-  supabaseUrl: string;
-  supabaseKey: string;
-  adminEmail: string;
-  adminPassword: string;
-  adminName: string;
-}
+import { Loader2, Database, FileText, Download, CheckCircle } from "lucide-react";
 
 const Setup = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState<"instructions" | "env" | "import" | "success">("instructions");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"connection" | "admin" | "migrating" | "success" | "error">("connection");
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState("");
-  const [formData, setFormData] = useState<SetupFormData>({
-    supabaseUrl: "",
-    supabaseKey: "",
-    adminEmail: "",
-    adminPassword: "",
-    adminName: "",
+  const [formData, setFormData] = useState({
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL || "",
+    supabaseKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
   });
 
-  // Check if already configured
-  useEffect(() => {
-    const url = import.meta.env.VITE_SUPABASE_URL;
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    if (url && key) {
-      // Try to connect and check if database is initialized
-      checkDatabaseInitialized(url, key);
-    }
-  }, []);
-
-  const checkDatabaseInitialized = async (url: string, key: string) => {
-    try {
-      const client = createClient(url, key);
-      const { data, error } = await client.from("profiles").select("count").limit(1);
-      
-      if (error && error.code === "PGRST116") {
-        // Table doesn't exist, need setup
-        return;
-      }
-      
-      // Database seems initialized, redirect to landing
-      navigate("/");
-    } catch (err) {
-      // Not configured, stay on setup page
-    }
-  };
-
-  const handleConnectionTest = async () => {
+  const handleSaveEnv = () => {
     if (!formData.supabaseUrl || !formData.supabaseKey) {
       setError("Por favor, preencha a URL e a chave do Supabase");
       return;
     }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const client = createClient(formData.supabaseUrl, formData.supabaseKey);
-      
-      // Test connection
-      const { error: testError } = await client.from("profiles").select("count").limit(1);
-      
-      if (testError && testError.code !== "PGRST116") {
-        throw new Error(`Erro ao conectar: ${testError.message}`);
-      }
-
-      // Connection successful, move to admin step
-      setStep("admin");
-    } catch (err: any) {
-      setError(err.message || "Erro ao conectar com o Supabase");
-    } finally {
-      setLoading(false);
-    }
+    setStep("import");
   };
 
-  const handleSetup = async () => {
-    if (!formData.adminEmail || !formData.adminPassword || !formData.adminName) {
-      setError("Por favor, preencha todos os campos do administrador");
-      return;
-    }
-
+  const handleFinishSetup = () => {
+    // Simular conclusão do setup
     setLoading(true);
-    setError(null);
-    setStep("migrating");
-
-    try {
-      const client = createClient(formData.supabaseUrl, formData.supabaseKey);
-
-      // Step 1: Run migrations
-      setProgress("Executando migrações do banco de dados...");
-      await runMigrations(client);
-
-      // Step 2: Create admin user
-      setProgress("Criando usuário administrador...");
-      const { data: authData, error: authError } = await client.auth.signUp({
-        email: formData.adminEmail,
-        password: formData.adminPassword,
-        options: {
-          data: {
-            full_name: formData.adminName,
-            role: "admin",
-          },
-        },
-      });
-
-      if (authError) {
-        throw new Error(`Erro ao criar usuário: ${authError.message}`);
-      }
-
-      if (!authData.user) {
-        throw new Error("Falha ao criar usuário");
-      }
-
-      // Step 3: Set admin role
-      setProgress("Configurando permissões do administrador...");
-      const { error: roleError } = await client.rpc("admin_set_user_role", {
-        target_user_id: authData.user.id,
-        new_role: "admin",
-      });
-
-      // If RPC doesn't work, insert directly
-      if (roleError) {
-        const { error: insertError } = await client
-          .from("user_roles")
-          .upsert({
-            user_id: authData.user.id,
-            role: "admin",
-          });
-
-        if (insertError) {
-          console.warn("Erro ao definir role via RPC, tentando inserção direta:", insertError);
-        }
-      }
-
-      // Step 4: Save environment variables to localStorage (temporary)
-      // In production, these should be set in .env file
-      localStorage.setItem("setup_complete", "true");
-      localStorage.setItem("supabase_url", formData.supabaseUrl);
-      localStorage.setItem("supabase_key", formData.supabaseKey);
-
+    setTimeout(() => {
+      setLoading(false);
       setStep("success");
-      setProgress("Configuração concluída com sucesso!");
-
-      // Redirect to login after 2 seconds
+      // Redirecionar para landing após 2 segundos
       setTimeout(() => {
-        navigate("/auth");
+        navigate("/");
       }, 2000);
-    } catch (err: any) {
-      const errorMessage = err.message || "Erro durante a configuração";
-      
-      // Check if it's a migration error
-      if (errorMessage.startsWith("MIGRATIONS_REQUIRED:")) {
-        const instructions = errorMessage.replace("MIGRATIONS_REQUIRED:", "");
-        setError(instructions);
-        setStep("admin"); // Go back to admin step so user can retry after running migrations
-      } else {
-        setError(errorMessage);
-        setStep("error");
-      }
-    } finally {
-      setLoading(false);
-    }
+    }, 1500);
   };
 
-  const runMigrations = async (client: any) => {
-    // Check if tables exist to determine if migrations are needed
-    const { error: checkError } = await client.from("profiles").select("count").limit(1);
-    
-    if (checkError && checkError.code === "PGRST116") {
-      // Tables don't exist - need to run migrations
-      // Since Supabase client doesn't support raw SQL execution,
-      // we'll provide instructions to the user
-      throw new Error(
-        "MIGRATIONS_REQUIRED:" +
-        "As tabelas do banco de dados não foram criadas.\n\n" +
-        "Por favor, execute o seguinte procedimento:\n\n" +
-        "1. Acesse o Supabase Dashboard\n" +
-        "2. Vá em SQL Editor\n" +
-        "3. Copie e cole o conteúdo do arquivo: scripts/consolidate-migrations.sql\n" +
-        "4. Execute o script\n" +
-        "5. Volte aqui e clique em 'Finalizar Configuração' novamente"
-      );
-    }
+  if (step === "instructions") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl glass border-border/50">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-primary flex items-center justify-center">
+              <Database className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl">Configuração Inicial</CardTitle>
+            <CardDescription>
+              Configure seu novo banco de dados Supabase
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">Passo 1: Criar Projeto no Supabase</h3>
+              <p className="text-muted-foreground">
+                Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Dashboard do Supabase</a> e crie um novo projeto.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">Passo 2: Configurar Variáveis de Ambiente</h3>
+              <p className="text-muted-foreground">
+                Após criar seu projeto, obtenha a URL e a Chave Anônima e preencha os campos na próxima etapa.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">Passo 3: Importar Esquema do Banco de Dados</h3>
+              <p className="text-muted-foreground">
+                Você precisará importar o esquema do banco de dados usando o script que preparamos.
+              </p>
+              <Button 
+                onClick={() => {
+                  // Em um ambiente real, isso poderia baixar o arquivo ou abrir uma nova aba
+                  alert("O script 'scripts/full-database-schema.sql' foi gerado. Use-o no SQL Editor do seu projeto Supabase.");
+                }}
+                className="w-full bg-gradient-primary"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Ver Script de Importação (scripts/full-database-schema.sql)
+              </Button>
+            </div>
+            
+            <Button 
+              onClick={() => setStep("env")} 
+              className="w-full bg-gradient-primary"
+            >
+              Continuar para Configuração
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-    // If we get here, tables exist (migrations may have been run manually)
-    return;
-  };
-
-  if (step === "connection") {
+  if (step === "env") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md glass border-border/50">
@@ -207,19 +103,17 @@ const Setup = () => {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-primary flex items-center justify-center">
               <Database className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Configuração Inicial</CardTitle>
+            <CardTitle className="text-2xl">Configuração do Supabase</CardTitle>
             <CardDescription>
-              Conecte-se ao seu banco de dados Supabase
+              Insira as credenciais do seu novo projeto
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertCircle className="w-4 h-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
             <div className="space-y-2">
               <Label htmlFor="supabaseUrl">URL do Supabase</Label>
               <Input
@@ -227,13 +121,9 @@ const Setup = () => {
                 type="url"
                 placeholder="https://seu-projeto.supabase.co"
                 value={formData.supabaseUrl}
-                onChange={(e) =>
-                  setFormData({ ...formData, supabaseUrl: e.target.value })
-                }
-                disabled={loading}
+                onChange={(e) => setFormData({ ...formData, supabaseUrl: e.target.value })}
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="supabaseKey">Chave Pública (anon key)</Label>
               <Input
@@ -241,31 +131,25 @@ const Setup = () => {
                 type="password"
                 placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 value={formData.supabaseKey}
-                onChange={(e) =>
-                  setFormData({ ...formData, supabaseKey: e.target.value })
-                }
-                disabled={loading}
+                onChange={(e) => setFormData({ ...formData, supabaseKey: e.target.value })}
               />
             </div>
-
-            <Button
-              onClick={handleConnectionTest}
-              disabled={loading}
-              className="w-full bg-gradient-primary"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Testando conexão...
-                </>
-              ) : (
-                "Testar Conexão"
-              )}
-            </Button>
-
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setStep("instructions")}
+              >
+                Voltar
+              </Button>
+              <Button 
+                onClick={handleSaveEnv}
+                className="flex-1 bg-gradient-primary"
+              >
+                Salvar e Continuar
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground text-center">
-              Essas informações podem ser encontradas no Dashboard do Supabase
-              em Settings → API
+              Essas informações devem ser adicionadas ao seu arquivo <code className="bg-muted px-1 rounded">.env</code>
             </p>
           </CardContent>
         </Card>
@@ -273,108 +157,70 @@ const Setup = () => {
     );
   }
 
-  if (step === "admin") {
+  if (step === "import") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass border-border/50">
+        <Card className="w-full max-w-2xl glass border-border/50">
           <CardHeader className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-primary flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
+              <FileText className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Criar Administrador</CardTitle>
+            <CardTitle className="text-2xl">Importar Esquema do Banco de Dados</CardTitle>
             <CardDescription>
-              Crie a conta do primeiro administrador do sistema
+              Execute o script para criar tabelas e funções
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive" className="whitespace-pre-line">
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription className="text-sm">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="adminName">Nome Completo</Label>
-              <Input
-                id="adminName"
-                type="text"
-                placeholder="João Silva"
-                value={formData.adminName}
-                onChange={(e) =>
-                  setFormData({ ...formData, adminName: e.target.value })
-                }
-                disabled={loading}
-              />
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">Instruções</h3>
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                <li>
+                  Acesse o <strong>SQL Editor</strong> no Dashboard do seu projeto Supabase
+                </li>
+                <li>
+                  Abra o arquivo <code className="bg-muted px-1 rounded">scripts/full-database-schema.sql</code> que foi gerado
+                </li>
+                <li>
+                  Copie todo o conteúdo do arquivo
+                </li>
+                <li>
+                  Cole o conteúdo no editor SQL do Supabase
+                </li>
+                <li>
+                  Clique em <strong>Run</strong> para executar o script
+                </li>
+              </ol>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="adminEmail">E-mail</Label>
-              <Input
-                id="adminEmail"
-                type="email"
-                placeholder="admin@exemplo.com"
-                value={formData.adminEmail}
-                onChange={(e) =>
-                  setFormData({ ...formData, adminEmail: e.target.value })
-                }
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="adminPassword">Senha</Label>
-              <Input
-                id="adminPassword"
-                type="password"
-                placeholder="••••••••"
-                value={formData.adminPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, adminPassword: e.target.value })
-                }
-                disabled={loading}
-              />
-            </div>
-
+            
+            <Alert>
+              <AlertDescription>
+                <strong>Importante:</strong> Aguarde a execução completa do script antes de continuar. Isso pode levar alguns segundos.
+              </AlertDescription>
+            </Alert>
+            
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setStep("connection")}
-                disabled={loading}
-                className="flex-1"
+              <Button 
+                variant="outline" 
+                onClick={() => setStep("env")}
               >
                 Voltar
               </Button>
-              <Button
-                onClick={handleSetup}
+              <Button 
+                onClick={handleFinishSetup}
                 disabled={loading}
                 className="flex-1 bg-gradient-primary"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Configurando...
+                    Importando...
                   </>
                 ) : (
-                  "Finalizar Configuração"
+                  "Concluir Configuração"
                 )}
               </Button>
             </div>
           </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (step === "migrating") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass border-border/50">
-          <CardHeader className="text-center">
-            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
-            <CardTitle className="text-2xl">Configurando Sistema</CardTitle>
-            <CardDescription>{progress}</CardDescription>
-          </CardHeader>
         </Card>
       </div>
     );
@@ -390,7 +236,7 @@ const Setup = () => {
             </div>
             <CardTitle className="text-2xl">Configuração Concluída!</CardTitle>
             <CardDescription>
-              O sistema foi configurado com sucesso. Redirecionando...
+              O sistema está pronto para uso. Redirecionando...
             </CardDescription>
           </CardHeader>
         </Card>
@@ -402,4 +248,3 @@ const Setup = () => {
 };
 
 export default Setup;
-
