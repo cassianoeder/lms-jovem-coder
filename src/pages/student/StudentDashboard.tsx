@@ -8,11 +8,10 @@ import {
   Flame,
   Zap,
   Trophy,
-  BookOpen, // Target icon removed
+  BookOpen,
   Code2,
   ChevronRight,
   Star,
-  Calendar,
   TrendingUp,
   Play,
   LogOut,
@@ -20,7 +19,7 @@ import {
   Award,
   Home,
   CheckCircle,
-} from "lucide-react";
+} from "lucide-react"; // Removed Target and Calendar icons
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentLearningProgress } from "@/hooks/useStudentLearningProgress";
@@ -44,18 +43,6 @@ interface StudentBadge {
     rarity: string;
   };
 }
-
-// DailyMission interface removed as it's no longer needed
-// interface DailyMission {
-//   id: string;
-//   title: string;
-//   target_count: number;
-//   xp_reward: number;
-//   student_missions: {
-//     progress: number;
-//     completed: boolean;
-//   }[];
-// }
 
 const StudentDashboard = () => {
   const { profile, signOut } = useAuth();
@@ -258,9 +245,8 @@ const StudentDashboard = () => {
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Daily Missions section removed */}
-          {/* Recent Badges */}
-          <Card className="glass border-border/50 lg:col-span-1"> {/* Adjusted col-span */}
+          {/* Recent Badges now takes full width if no missions */}
+          <Card className="glass border-border/50 lg:col-span-1">
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-badge-gold" />
