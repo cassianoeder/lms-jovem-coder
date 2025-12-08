@@ -26,6 +26,7 @@ import ManageModules from "./pages/teacher/ManageModules";
 import Settings from "./pages/teacher/Settings";
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
 import NotFound from "./pages/NotFound";
+import SetupGuard from "./components/SetupGuard";
 
 const queryClient = new QueryClient();
 
@@ -35,8 +36,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
+        <SetupGuard>
+          <AuthProvider>
+            <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentDashboard /></ProtectedRoute>} />
@@ -59,7 +61,8 @@ const App = () => (
             <Route path="/coordinator" element={<ProtectedRoute allowedRoles={['coordinator', 'admin']}><CoordinatorDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+          </AuthProvider>
+        </SetupGuard>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
