@@ -2,12 +2,24 @@
 -- necessárias para o funcionamento do sistema JovemCoder.
 -- Execute este script completo no SQL Editor do seu novo projeto Supabase.
 
+-- 1. CRIAR OS ENUMS PRIMEIRO
+-- Enums
+CREATE TYPE public.app_role AS ENUM (
+    'student',
+    'teacher',
+    'coordinator',
+    'admin'
+);
+
+ALTER TYPE public.app_role OWNER TO postgres;
+
+-- 2. CRIAR AS TABELAS
 -- Tabela: user_roles
 CREATE TABLE IF NOT EXISTS public.user_roles (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     user_id uuid NOT NULL,
-    role public.app_role NOT NULL
+    role public.app_role NOT NULL -- Qualificado com o esquema
 );
 
 ALTER TABLE public.user_roles OWNER TO postgres;
@@ -462,8 +474,9 @@ ALTER TABLE ONLY public.questions
 ALTER TABLE ONLY public.questions
     ADD CONSTRAINT questions_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.exercises(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
+-- 3. CRIAR AS FUNÇÕES
 -- Função: get_user_role
-CREATE OR REPLACE FUNCTION public.get_user_role(_user_id uuid) RETURNS app_role
+CREATE OR REPLACE FUNCTION public.get_user_role(_user_id uuid) RETURNS public.app_role -- Qualificado com o esquema
     LANGUAGE sql STABLE
     AS $$
   SELECT role FROM user_roles WHERE user_id = _user_id;
@@ -472,7 +485,7 @@ $$;
 ALTER FUNCTION public.get_user_role(_user_id uuid) OWNER TO postgres;
 
 -- Função: has_role
-CREATE OR REPLACE FUNCTION public.has_role(_role app_role, _user_id uuid) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.has_role(_role public.app_role, _user_id uuid) RETURNS boolean -- Qualificado com o esquema
     LANGUAGE sql STABLE
     AS $$
   SELECT EXISTS (
@@ -480,15 +493,15 @@ CREATE OR REPLACE FUNCTION public.has_role(_role app_role, _user_id uuid) RETURN
   );
 $$;
 
-ALTER FUNCTION public.has_role(_role app_role, _user_id uuid) OWNER TO postgres;
+ALTER FUNCTION public.has_role(_role public.app_role, _user_id uuid) OWNER TO postgres; -- Qualificado com o esquema
 
 -- Função: admin_set_user_role
-CREATE OR REPLACE FUNCTION public.admin_set_user_role(new_role app_role, target_user_id uuid) RETURNS boolean
+CREATE OR REPLACE FUNCTION public.admin_set_user_role(new_role public.app_role, target_user_id uuid) RETURNS boolean -- Qualificado com o esquema
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
   -- Check if the current user is an admin
-  IF NOT public.has_role('admin', auth.uid()) THEN
+  IF NOT public.has_role('admin'::public.app_role, auth.uid()) THEN -- Qualificado com o esquema
     RAISE EXCEPTION 'Only admins can set user roles';
   END IF;
 
@@ -501,7 +514,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION public.admin_set_user_role(new_role app_role, target_user_id uuid) OWNER TO postgres;
+ALTER FUNCTION public.admin_set_user_role(new_role public.app_role, target_user_id uuid) OWNER TO postgres; -- Qualificado com o esquema
 
 -- Função: generate_certificate_code
 CREATE OR REPLACE FUNCTION public.generate_certificate_code() RETURNS text
@@ -547,7 +560,7 @@ BEGIN
     INSERT INTO public.user_roles (user_id, role)
     VALUES (
       NEW.id,
-      (NEW.raw_user_meta_data->>'role')::app_role
+      (NEW.raw_user_meta_data->>'role')::public.app_role -- Qualificado com o esquema
     );
   END IF;
 
@@ -567,16 +580,7 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Enums
-CREATE TYPE public.app_role AS ENUM (
-    'student',
-    'teacher',
-    'coordinator',
-    'admin'
-);
-
-ALTER TYPE public.app_role OWNER TO postgres;
-
+-- 4. CRIAR AS POLÍTICAS (RLS)
 -- Policies
 ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
@@ -607,7 +611,7 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Profiles are viewable by themselves and admins."
     ON public.profiles FOR SELECT
     USING (
-        (auth.uid() = user_id) OR public.has_role('admin'::app_role, auth.uid())
+        (auth.uid() = user_id) OR public.has_role('admin'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "Users can insert their own profile."
@@ -625,8 +629,8 @@ CREATE POLICY "Users can read their own roles."
 
 CREATE POLICY "Admins can manage user roles."
     ON public.user_roles FOR ALL
-    USING (public.has_role('admin'::app_role, auth.uid()))
-    WITH CHECK (public.has_role('admin'::app_role, auth.uid()));
+    USING (public.has_role('admin'::public.app_role, auth.uid())) -- Qualificado com o esquema
+    WITH CHECK (public.has_role('admin'::public.app_role, auth.uid())); -- Qualificado com o esquema
 
 -- Policies for system_settings
 CREATE POLICY "System settings are viewable by everyone."
@@ -635,8 +639,8 @@ CREATE POLICY "System settings are viewable by everyone."
 
 CREATE POLICY "Admins can manage system settings."
     ON public.system_settings FOR ALL
-    USING (public.has_role('admin'::app_role, auth.uid()))
-    WITH CHECK (public.has_role('admin'::app_role, auth.uid()));
+    USING (public.has_role('admin'::public.app_role, auth.uid())) -- Qualificado com o esquema
+    WITH CHECK (public.has_role('admin'::public.app_role, auth.uid())); -- Qualificado com o esquema
 
 -- Policies for courses
 CREATE POLICY "Courses are viewable by everyone."
@@ -646,12 +650,12 @@ CREATE POLICY "Courses are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage courses."
     ON public.courses FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for modules
@@ -662,12 +666,12 @@ CREATE POLICY "Modules are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage modules."
     ON public.modules FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for lessons
@@ -678,12 +682,12 @@ CREATE POLICY "Lessons are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage lessons."
     ON public.lessons FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for exercises
@@ -694,12 +698,12 @@ CREATE POLICY "Exercises are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage exercises."
     ON public.exercises FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for classes
@@ -710,12 +714,12 @@ CREATE POLICY "Classes are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage classes."
     ON public.classes FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for class_courses
@@ -726,12 +730,12 @@ CREATE POLICY "Class courses are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage class courses."
     ON public.class_courses FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for enrollments
@@ -739,19 +743,19 @@ CREATE POLICY "Enrollments are viewable by admins, teachers, and the student."
     ON public.enrollments FOR SELECT
     USING (
         (auth.uid() = student_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "Admins and teachers can manage enrollments."
     ON public.enrollments FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for enrollment_requests
@@ -759,8 +763,8 @@ CREATE POLICY "Enrollment requests are viewable by admins, teachers, and the stu
     ON public.enrollment_requests FOR SELECT
     USING (
         (auth.uid() = student_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "Students can create enrollment requests."
@@ -770,12 +774,12 @@ CREATE POLICY "Students can create enrollment requests."
 CREATE POLICY "Admins and teachers can manage enrollment requests."
     ON public.enrollment_requests FOR UPDATE
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for student_progress
@@ -783,8 +787,8 @@ CREATE POLICY "Progress is viewable by admins, teachers, and the student."
     ON public.student_progress FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "Students can update their own progress."
@@ -801,8 +805,8 @@ CREATE POLICY "XP is viewable by admins, teachers, and the student."
     ON public.student_xp FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "System can update XP."
@@ -815,8 +819,8 @@ CREATE POLICY "Streaks are viewable by admins, teachers, and the student."
     ON public.streaks FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "System can update streaks."
@@ -831,16 +835,16 @@ CREATE POLICY "Badges are viewable by everyone."
 
 CREATE POLICY "Admins can manage badges."
     ON public.badges FOR ALL
-    USING (public.has_role('admin'::app_role, auth.uid()))
-    WITH CHECK (public.has_role('admin'::app_role, auth.uid()));
+    USING (public.has_role('admin'::public.app_role, auth.uid())) -- Qualificado com o esquema
+    WITH CHECK (public.has_role('admin'::public.app_role, auth.uid())); -- Qualificado com o esquema
 
 -- Policies for student_badges
 CREATE POLICY "Badges are viewable by admins, teachers, and the student."
     ON public.student_badges FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "System can manage student badges."
@@ -855,16 +859,16 @@ CREATE POLICY "Missions are viewable by everyone."
 
 CREATE POLICY "Admins can manage missions."
     ON public.daily_missions FOR ALL
-    USING (public.has_role('admin'::app_role, auth.uid()))
-    WITH CHECK (public.has_role('admin'::app_role, auth.uid()));
+    USING (public.has_role('admin'::public.app_role, auth.uid())) -- Qualificado com o esquema
+    WITH CHECK (public.has_role('admin'::public.app_role, auth.uid())); -- Qualificado com o esquema
 
 -- Policies for student_missions
 CREATE POLICY "Missions are viewable by admins, teachers, and the student."
     ON public.student_missions FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "Students can update their own missions."
@@ -883,16 +887,16 @@ CREATE POLICY "Templates are viewable by everyone."
 
 CREATE POLICY "Admins can manage templates."
     ON public.certificate_templates FOR ALL
-    USING (public.has_role('admin'::app_role, auth.uid()))
-    WITH CHECK (public.has_role('admin'::app_role, auth.uid()));
+    USING (public.has_role('admin'::public.app_role, auth.uid())) -- Qualificado com o esquema
+    WITH CHECK (public.has_role('admin'::public.app_role, auth.uid())); -- Qualificado com o esquema
 
 -- Policies for certificates
 CREATE POLICY "Certificates are viewable by admins, teachers, and the student."
     ON public.certificates FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "System can manage certificates."
@@ -904,8 +908,8 @@ CREATE POLICY "System can manage certificates."
 CREATE POLICY "Tests are viewable by admins, teachers, and enrolled students."
     ON public.tests FOR SELECT
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid()) OR
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
         EXISTS (
             SELECT 1 FROM public.enrollments e
             JOIN public.classes c ON e.class_id = c.id
@@ -916,20 +920,20 @@ CREATE POLICY "Tests are viewable by admins, teachers, and enrolled students."
 CREATE POLICY "Admins and teachers can manage tests."
     ON public.tests FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for test_questions
 CREATE POLICY "Test questions are viewable by admins, teachers, and enrolled students."
     ON public.test_questions FOR SELECT
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid()) OR
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
         EXISTS (
             SELECT 1 FROM public.test_attempts ta
             JOIN public.tests t ON ta.test_id = t.id
@@ -941,12 +945,12 @@ CREATE POLICY "Test questions are viewable by admins, teachers, and enrolled stu
 CREATE POLICY "Admins and teachers can manage test questions."
     ON public.test_questions FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 -- Policies for test_attempts
@@ -954,8 +958,8 @@ CREATE POLICY "Attempts are viewable by admins, teachers, and the student."
     ON public.test_attempts FOR SELECT
     USING (
         (auth.uid() = user_id) OR
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
 CREATE POLICY "Students can create and update their own attempts."
@@ -971,14 +975,15 @@ CREATE POLICY "Questions are viewable by everyone."
 CREATE POLICY "Admins and teachers can manage questions."
     ON public.questions FOR ALL
     USING (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     )
     WITH CHECK (
-        public.has_role('admin'::app_role, auth.uid()) OR
-        public.has_role('teacher'::app_role, auth.uid())
+        public.has_role('admin'::public.app_role, auth.uid()) OR -- Qualificado com o esquema
+        public.has_role('teacher'::public.app_role, auth.uid()) -- Qualificado com o esquema
     );
 
+-- 5. INSERIR DADOS INICIAIS
 -- Inserindo dados iniciais para system_settings
 INSERT INTO public.system_settings (id, platform_name)
 VALUES ('d8c7e9f1-1a2b-4c3d-9e8f-1a2b4c5d6e7f', 'JovemCoder')
