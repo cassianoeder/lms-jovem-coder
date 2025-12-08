@@ -253,7 +253,7 @@ const ClassContent = () => {
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-3 flex items-center gap-4">
           <Link to="/student/my-classes">
-            <Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button>
+            <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
           </Link>
           <div>
             <h1 className="font-display text-lg font-bold text-foreground">{classData?.name}</h1>

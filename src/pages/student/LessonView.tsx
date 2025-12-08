@@ -309,8 +309,8 @@ const LessonView = () => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-3 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5 text-foreground" />
           </Button>
           <div className="flex-1">
             <h1 className="font-display text-lg font-bold text-foreground line-clamp-1">{lesson?.title}</h1>

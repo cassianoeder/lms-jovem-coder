@@ -222,7 +222,7 @@ const ManageLessons = () => {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/teacher" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-5 h-5" />
+              <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
             </Link>
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
@@ -232,8 +232,8 @@ const ManageLessons = () => {
             </div>
           </div>
 
-          <Button variant="ghost" size="icon" onClick={signOut}>
-            <LogOut className="w-5 h-5" />
+          <Button variant="outline" size="icon" onClick={signOut}>
+            <LogOut className="w-5 h-5 text-foreground" />
           </Button>
         </div>
       </header>

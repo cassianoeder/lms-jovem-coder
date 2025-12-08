@@ -66,12 +66,12 @@ const TeacherDashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <Link to="/">
-              <Button variant="ghost" size="icon" title="Página inicial">
-                <Home className="w-5 h-5" />
+              <Button variant="outline" size="icon" title="Página inicial">
+                <Home className="w-5 h-5 text-foreground" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" onClick={signOut} title="Sair">
-              <LogOut className="w-5 h-5" />
+            <Button variant="outline" size="icon" onClick={signOut} title="Sair">
+              <LogOut className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>

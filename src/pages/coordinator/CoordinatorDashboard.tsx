@@ -130,11 +130,11 @@ const CoordinatorDashboard = () => {
             </Select>
 
             <Button variant="outline" size="icon">
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 text-foreground" />
             </Button>
 
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="w-5 h-5" />
+            <Button variant="outline" size="icon" onClick={handleSignOut}>
+              <LogOut className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>

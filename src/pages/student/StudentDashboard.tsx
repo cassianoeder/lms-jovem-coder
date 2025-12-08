@@ -19,7 +19,7 @@ import {
   Award,
   Home,
   CheckCircle,
-} from "lucide-react"; // Removed Target and Calendar icons
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentLearningProgress } from "@/hooks/useStudentLearningProgress";
@@ -139,12 +139,12 @@ const StudentDashboard = () => {
             </div>
 
             <Link to="/">
-              <Button variant="ghost" size="icon" title="Página inicial">
-                <Home className="w-5 h-5" />
+              <Button variant="outline" size="icon" title="Página inicial">
+                <Home className="w-5 h-5 text-foreground" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sair">
-              <LogOut className="w-5 h-5" />
+            <Button variant="outline" size="icon" onClick={handleSignOut} title="Sair">
+              <LogOut className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>
