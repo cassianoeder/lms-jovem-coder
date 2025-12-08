@@ -110,13 +110,13 @@ const CertificateValidation = () => {
                   <a href={certificate.pdf_url} target="_blank" rel="noopener noreferrer" className="flex-1">
                     <Button className="w-full bg-gradient-primary hover:opacity-90">
                       <Download className="w-4 h-4 mr-2" />
-                      Baixar PDF
+                      Baixar Imagem (PNG)
                     </Button>
                   </a>
                 ) : (
                   <Button className="flex-1 bg-gradient-primary hover:opacity-90" disabled>
                     <Download className="w-4 h-4 mr-2" />
-                    PDF em processamento
+                    Imagem em processamento
                   </Button>
                 )}
                 <Link to="/student/certificates">

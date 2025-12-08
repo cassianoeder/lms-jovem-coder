@@ -16,7 +16,7 @@ interface Certificate {
   course_name: string;
   hours_load: number | null;
   score: number | null;
-  pdf_url: string | null;
+  pdf_url: string | null; // Renamed from pdf_url to be more generic for image/pdf
 }
 
 const MyCertificates = () => {
@@ -139,13 +139,13 @@ const MyCertificates = () => {
                         <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer" className="flex-1">
                           <Button className="w-full bg-gradient-primary hover:opacity-90">
                             <Download className="w-4 h-4 mr-2" />
-                            Baixar PDF
+                            Baixar Imagem (PNG)
                           </Button>
                         </a>
                       ) : (
                         <Button className="flex-1 bg-gradient-primary hover:opacity-90" disabled>
                           <Download className="w-4 h-4 mr-2" />
-                          PDF em processamento
+                          Imagem em processamento
                         </Button>
                       )}
                       <Link to={`/certificate/validate/${cert.validation_code}`}>
