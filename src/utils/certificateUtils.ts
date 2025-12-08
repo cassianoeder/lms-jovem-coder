@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
+import CertificateTemplateDisplay from '@/components/CertificateTemplateDisplay';
+import React from 'react';
+import ReactDOM from 'react-dom/client'; // Import ReactDOM for createRoot
 
 type Lesson = Tables<'lessons'>;
 type Exercise = Tables<'exercises'>;
@@ -9,6 +13,71 @@ type CertificateTemplate = Tables<'certificate_templates'>;
 type Profile = Tables<'profiles'>;
 type Module = Tables<'modules'>;
 type Course = Tables<'courses'>;
+
+interface CertificateDataForDisplay {
+  student_name: string;
+  course_name: string;
+  hours_load: number | null;
+  score: number | null;
+  issued_at: string;
+  validation_code: string;
+}
+
+// Function to generate PNG from React component
+async function generateCertificateImage(certificateData: CertificateDataForDisplay): Promise<string | null> {
+  let container: HTMLDivElement | null = null; // Declare outside try block
+  let root: ReactDOM.Root | null = null; // Declare outside try block
+
+  try {
+    container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px'; // Move off-screen
+    container.style.top = '-9999px';
+    document.body.appendChild(container);
+
+    root = ReactDOM.createRoot(container);
+    
+    // Use a promise to wait for the component to render and its ref callback to fire
+    await new Promise<void>(resolve => {
+      root!.render(
+        <CertificateTemplateDisplay 
+          certificate={certificateData} 
+          ref={el => {
+            if (el) {
+              resolve(); // Resolve the promise when the component is mounted and ref is set
+            }
+          }} 
+        />
+      );
+    });
+
+    // Wait for a short period to ensure all styles and images are loaded
+    await new Promise(r => setTimeout(r, 500)); 
+
+    // Use html2canvas to capture the content
+    const canvas = await html2canvas(container.firstChild as HTMLElement, {
+      scale: 2, // Increase scale for better resolution
+      useCORS: true, // Important for images loaded from external URLs
+      allowTaint: true, // Allow cross-origin images to be drawn on canvas
+      backgroundColor: null, // Keep background transparent if needed, or set to white
+    });
+
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error("Error generating certificate image:", error);
+    toast.error("Erro ao gerar imagem do certificado.");
+    return null;
+  } finally {
+    // Clean up the temporary container
+    if (root) {
+      root.unmount();
+    }
+    if (container && document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
+  }
+}
+
 
 export async function checkAndIssueModuleCertificate(userId: string, moduleId: string, courseId: string) {
   console.log("--- checkAndIssueModuleCertificate initiated ---");
@@ -197,21 +266,37 @@ export async function checkAndIssueModuleCertificate(userId: string, moduleId: s
   }
   console.log("No existing certificate found. Proceeding to insert.");
 
-  // 10. Insert new certificate
+  // 10. Generate the certificate image (PNG Data URL)
+  const certificateDataForDisplay: CertificateDataForDisplay = {
+    student_name: profileData.full_name,
+    course_name: moduleData.title, // Use module title for module certificate
+    hours_load: template.hours_load,
+    score: averageScore,
+    issued_at: new Date().toISOString(),
+    validation_code: validationCode,
+  };
+
+  const pngDataUrl = await generateCertificateImage(certificateDataForDisplay);
+
+  if (!pngDataUrl) {
+    console.error("Failed to generate PNG image for certificate.");
+    toast.error("Falha ao gerar imagem do certificado.");
+    return;
+  }
+  console.log("PNG Data URL generated successfully.");
+
+  // 11. Insert new certificate with the generated PNG Data URL
   const { error: insertCertError } = await supabase.from('certificates').insert({
     user_id: userId,
     module_id: moduleId,
-    course_name: courseData.title, // Use course name for context
+    course_name: moduleData.title, // Use module title for module certificate
     student_name: profileData.full_name,
     validation_code: validationCode,
     issued_at: new Date().toISOString(),
     template_id: template.id,
     hours_load: template.hours_load,
     score: averageScore,
-    // Usando um URL de placeholder para uma imagem de certificado.
-    // Em um ambiente de produção, um serviço de backend geraria o PNG real
-    // e faria o upload para um armazenamento (ex: Supabase Storage, S3).
-    pdf_url: `https://via.placeholder.com/800x600/007bff/ffffff?text=Certificado+JovemCoder`, 
+    pdf_url: pngDataUrl, // Store the Data URL directly
   });
 
   if (insertCertError) {
