@@ -27,6 +27,7 @@ import Settings from "./pages/teacher/Settings";
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
 import NotFound from "./pages/NotFound";
 import SetupGuard from "./components/SetupGuard";
+import CertificateValidation from "./pages/CertificateValidation"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
             <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/certificate/validate/:validationCode" element={<CertificateValidation />} /> {/* New Route */}
             <Route path="/student" element={<ProtectedRoute allowedRoles={['student', 'admin']}><StudentDashboard /></ProtectedRoute>} />
             <Route path="/student/classes" element={<ProtectedRoute allowedRoles={['student', 'admin']}><AvailableClasses /></ProtectedRoute>} />
             <Route path="/student/my-classes" element={<ProtectedRoute allowedRoles={['student', 'admin']}><MyClasses /></ProtectedRoute>} />
