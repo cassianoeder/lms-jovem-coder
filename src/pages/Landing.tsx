@@ -4,10 +4,46 @@ import { Trophy, Users, Zap, Target, BookOpen, ArrowRight, Star, Flame } from "l
 
 const Landing = () => {
   return (
-    <div className="min-h-screen bg-gradient-hero dark">
+    <div className="min-h-screen bg-gradient-hero dark relative overflow-hidden">
+      {/* Planeta Marte animado ao fundo */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="relative w-[800px] h-[800px] lg:w-[1000px] lg:h-[1000px] animate-pulse-slow">
+          {/* Planeta Marte */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-900/30 via-red-900/20 to-orange-800/10 blur-3xl animate-float">
+            {/* Superfície do planeta */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-800/20 via-red-700/15 to-orange-900/25">
+              {/* Detalhes da superfície - crateras e texturas */}
+              <div className="absolute top-[20%] left-[30%] w-20 h-20 rounded-full bg-orange-900/10 blur-xl"></div>
+              <div className="absolute top-[40%] right-[25%] w-16 h-16 rounded-full bg-red-900/10 blur-lg"></div>
+              <div className="absolute bottom-[30%] left-[20%] w-24 h-24 rounded-full bg-orange-800/10 blur-xl"></div>
+              <div className="absolute top-[60%] left-[45%] w-12 h-12 rounded-full bg-red-800/10 blur-md"></div>
+              <div className="absolute bottom-[45%] right-[35%] w-18 h-18 rounded-full bg-orange-900/10 blur-lg"></div>
+              
+              {/* Pólos do planeta */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-white/5 blur-2xl"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-white/3 blur-xl"></div>
+              
+              {/* Anéis de poeira/atmosfera */}
+              <div className="absolute inset-0 rounded-full border border-orange-700/20 blur-sm"></div>
+              <div className="absolute inset-2 rounded-full border border-red-700/10 blur-sm"></div>
+            </div>
+          </div>
+          
+          {/* Aura atmosférica */}
+          <div className="absolute -inset-20 rounded-full bg-gradient-to-t from-orange-600/5 via-transparent to-red-600/5 blur-3xl"></div>
+          
+          {/* Estrelas ao redor */}
+          <div className="absolute top-10 left-10 w-2 h-2 bg-white/60 rounded-full animate-twinkle"></div>
+          <div className="absolute top-20 right-20 w-1 h-1 bg-white/40 rounded-full animate-twinkle" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-20 left-20 w-2 h-2 bg-white/50 rounded-full animate-twinkle" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-10 right-10 w-1 h-1 bg-white/30 rounded-full animate-twinkle" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/3 left-1/4 w-1 h-1 bg-white/40 rounded-full animate-twinkle" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-2/3 right-1/4 w-2 h-2 bg-white/50 rounded-full animate-twinkle" style={{ animationDelay: '2.5s' }}></div>
+        </div>
+      </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass backdrop-blur-lg border-b border-primary/10">
+      <nav className="relative z-10 sticky top-0 glass backdrop-blur-lg border-b border-primary/10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
 
           {/* LOGO */}
@@ -42,7 +78,7 @@ const Landing = () => {
       </nav>
 
       {/* HERO */}
-      <section className="pt-36 pb-24 px-4">
+      <section className="relative z-10 pt-36 pb-24 px-4">
         <div className="container mx-auto text-center">
 
           {/* LOGO CENTRAL */}
@@ -60,7 +96,7 @@ const Landing = () => {
           </div>
 
           {/* === TÍTULO SPACEX === */}
-          <h1 className="font-display text-5xl md:text-7xl font-black tracking-tight text-white mb-6 leading-tight animate-slide-up">
+          <h1 className="font-display text-5xl md:text-7xl font-black tracking-tight text-white mb-6 leading-tight">
             PROGRAME O FUTURO
             <br />
             <span className="text-gradient-primary">COMO UM ENGENHEIRO DE MISSÃO</span>
@@ -125,7 +161,7 @@ launch_programming()`}
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="py-24 px-4">
+      <section id="features" className="relative z-10 py-24 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="font-display text-4xl font-black text-foreground mb-4">
@@ -142,7 +178,7 @@ launch_programming()`}
               { icon: Flame, title: "Streak Diário", description: "Não quebre sua sequência.", gradient: "bg-gradient-streak" },
               { icon: Trophy, title: "Conquistas", description: "Desbloqueie recompensas.", gradient: "bg-gradient-accent" },
               { icon: Target, title: "Missões", description: "Desafios todos os dias.", gradient: "bg-gradient-primary" },
-              { icon: Users, title: "Ranking", description: "Dispute com outros alunos.", gradient: "bg-gradient-accent" },
+              { icon: Users, title: "Ranking", description: "Disputa com outros alunos.", gradient: "bg-gradient-accent" },
               { icon: BookOpen, title: "Aprendizado real", description: "Nada de teoria sem prática.", gradient: "bg-gradient-primary" },
             ].map((feature, index) => (
               <div
@@ -166,7 +202,7 @@ launch_programming()`}
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-4">
+      <section className="relative z-10 py-24 px-4">
         <div className="container mx-auto">
           <div className="glass rounded-3xl p-12 text-center relative overflow-hidden animate-glow">
             <div className="absolute inset-0 bg-gradient-primary opacity-10" />
@@ -192,7 +228,7 @@ launch_programming()`}
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12 px-4 border-t border-border/50">
+      <footer className="relative z-10 py-12 px-4 border-t border-border/50">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
@@ -210,7 +246,6 @@ launch_programming()`}
           </p>
         </div>
       </footer>
-
     </div>
   );
 };
