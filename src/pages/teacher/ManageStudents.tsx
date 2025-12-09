@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { 
   ArrowLeft, Users, Search, Eye, Trash2, Shield, BookOpen, Zap, Trophy, 
   TrendingUp, Code2, Mail, Plus, UserPlus, BarChart3, PieChart, Download,
-  Filter, Calendar
+  Filter, Calendar, User
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +75,7 @@ const ManageStudents = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
+  const [createStudentDialogOpen, setCreateStudentDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState<Student | null>(null);
   const [stats, setStats] = useState<StudentStats>({
@@ -84,6 +85,11 @@ const ManageStudents = () => {
     avg_xp: 0,
     top_level: 0
   });
+
+  // Form states for creating new student
+  const [newStudentName, setNewStudentName] = useState("");
+  const [newStudentEmail, setNewStudentEmail] = useState("");
+  const [newStudentPassword, setNewStudentPassword] = useState("");
 
   useEffect(() => {
     fetchStudents();
@@ -311,18 +317,117 @@ const ManageStudents = () => {
   const deleteStudent = async (userId: string) => {
     if (!confirm("Tem certeza que deseja remover este aluno? Esta ação é irreversível.")) return;
 
-    await supabase.from('enrollments').delete().eq('student_id', userId);
-    await supabase.from('enrollment_requests').delete().eq('student_id', userId);
-    await supabase.from('student_progress').delete().eq('user_id', userId);
-    await supabase.from('student_badges').delete().eq('user_id', userId);
-    await supabase.from('student_missions').delete().eq('user_id', userId);
-    await supabase.from('student_xp').delete().eq('user_id', userId);
-    await supabase.from('streaks').delete().eq('user_id', userId);
-    await supabase.from('user_roles').delete().eq('user_id', userId);
-    await supabase.from('profiles').delete().eq('user_id', userId);
+    try {
+      // Delete all related data
+      await supabase.from('enrollments').delete().eq('student_id', userId);
+      await supabase.from('enrollment_requests').delete().eq('student_id', userId);
+      await supabase.from('student_progress').delete().eq('user_id', userId);
+      await supabase.from('student_badges').delete().eq('user_id', userId);
+      await supabase.from('student_missions').delete().eq('user_id', userId);
+      await supabase.from('student_xp').delete().eq('user_id', userId);
+      await supabase.from('streaks').delete().eq('user_id', userId);
+      await supabase.from('user_roles').delete().eq('user_id', userId);
+      await supabase.from('profiles').delete().eq('user_id', userId);
+      
+      // Delete auth user
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      if (authError) throw authError;
 
-    toast.success("Aluno removido com sucesso");
-    fetchStudents();
+      toast.success("Aluno removido com sucesso");
+      fetchStudents();
+    } catch (error: any) {
+      console.error('Error deleting student:', error);
+      toast.error("Erro ao remover aluno: " + error.message);
+    }
+  };
+
+  const handleCreateStudent = async () => {
+    if (!newStudentName || !newStudentEmail || !newStudentPassword) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (newStudentPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
+    try {
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: newStudentEmail,
+        password: newStudentPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: newStudentName
+        }
+      });
+
+      if (authError) throw authError;
+
+      const userId = authData.user.id;
+
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: userId,
+          full_name: newStudentName,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (profileError) throw profileError;
+
+      // Create user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: 'student',
+          created_at: new Date().toISOString()
+        });
+
+      if (roleError) throw roleError;
+
+      // Create initial XP record
+      const { error: xpError } = await supabase
+        .from('student_xp')
+        .insert({
+          user_id: userId,
+          total_xp: 0,
+          level: 1,
+          updated_at: new Date().toISOString()
+        });
+
+      if (xpError) throw xpError;
+
+      // Create initial streak record
+      const { error: streakError } = await supabase
+        .from('streaks')
+        .insert({
+          user_id: userId,
+          current_streak: 0,
+          longest_streak: 0,
+          updated_at: new Date().toISOString()
+        });
+
+      if (streakError) throw streakError;
+
+      toast.success("Aluno criado com sucesso!");
+      setCreateStudentDialogOpen(false);
+      resetCreateStudentForm();
+      fetchStudents();
+    } catch (error: any) {
+      console.error('Error creating student:', error);
+      toast.error("Erro ao criar aluno: " + error.message);
+    }
+  };
+
+  const resetCreateStudentForm = () => {
+    setNewStudentName("");
+    setNewStudentEmail("");
+    setNewStudentPassword("");
   };
 
   const filteredStudents = students.filter(s => 
@@ -413,12 +518,13 @@ const ManageStudents = () => {
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
-          <Link to="/teacher/users">
-            <Button className="bg-gradient-primary hover:opacity-90">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Criar Novo Aluno
-            </Button>
-          </Link>
+          <Button 
+            className="bg-gradient-primary hover:opacity-90"
+            onClick={() => setCreateStudentDialogOpen(true)}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Novo Aluno
+          </Button>
         </div>
 
         {filteredStudents.length === 0 ? (
@@ -428,9 +534,13 @@ const ManageStudents = () => {
               <p className="text-muted-foreground">
                 {searchQuery ? "Nenhum aluno encontrado" : "Nenhum aluno cadastrado ainda"}
               </p>
-              <Link to="/teacher/users" className="mt-4 inline-block">
-                <Button className="bg-gradient-primary">Criar Primeiro Aluno</Button>
-              </Link>
+              <Button 
+                className="mt-4 bg-gradient-primary"
+                onClick={() => setCreateStudentDialogOpen(true)}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Criar Primeiro Aluno
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -610,6 +720,66 @@ const ManageStudents = () => {
                 className="bg-gradient-primary"
               >
                 Matricular
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para criar novo aluno */}
+      <Dialog open={createStudentDialogOpen} onOpenChange={(open) => {
+        setCreateStudentDialogOpen(open);
+        if (!open) resetCreateStudentForm();
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Novo Aluno</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome Completo *</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Nome do aluno"
+                  className="pl-10"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  className="pl-10"
+                  value={newStudentEmail}
+                  onChange={(e) => setNewStudentEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Senha *</Label>
+              <Input
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={newStudentPassword}
+                onChange={(e) => setNewStudentPassword(e.target.value)}
+                minLength={6}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateStudentDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleCreateStudent}
+                className="bg-gradient-primary"
+              >
+                Criar Aluno
               </Button>
             </div>
           </div>
