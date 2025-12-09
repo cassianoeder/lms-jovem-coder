@@ -1,153 +1,113 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import {
-  Code2,
-  Plus,
-  ArrowLeft,
-  BookOpen,
-  Pencil,
-  Trash2,
-  Video,
-  Clock,
-  Zap,
-  LogOut,
-  Layers,
-} from "lucide-react";
+import { toast } from "sonner";
+import { Code2, ArrowLeft, Plus, Pencil, Trash2, BookOpen, Video, Clock, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface Course {
-  id: string;
-  title: string;
-}
-
-interface Module {
-  id: string;
-  title: string;
-  course_id: string;
-  courses?: { title: string } | null;
-}
 
 interface Lesson {
   id: string;
   title: string;
   content: string | null;
   video_url: string | null;
-  order_index: number;
-  xp_reward: number;
   duration_minutes: number;
+  xp_reward: number;
   module_id: string | null;
+  order_index: number;
   course_id: string;
-  modules?: { title: string; courses?: { title: string } | null } | null;
+  created_at: string;
+}
+
+interface Module {
+  id: string;
+  title: string;
+  course_id: string;
+}
+
+interface Course {
+  id: string;
+  title: string;
 }
 
 const ManageLessons = () => {
-  const { signOut } = useAuth();
-  const { toast } = useToast();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [modules, setModules] = useState<Module[]>([]);
-  const [filteredModules, setFilteredModules] = useState<Module[]>([]);
+  const { user } = useAuth();
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
-
+  
   // Form state
+  const [moduleId, setModuleId] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [courseId, setCourseId] = useState("");
-  const [moduleId, setModuleId] = useState("");
-  const [xpReward, setXpReward] = useState(10);
   const [duration, setDuration] = useState(0);
+  const [xpReward, setXpReward] = useState(10);
+  const [courseId, setCourseId] = useState("");
+
+  const fetchData = async () => {
+    setLoading(true);
+    const [lessonsRes, modulesRes, coursesRes] = await Promise.all([
+      supabase.from('lessons').select('*').order('order_index'),
+      supabase.from('modules').select('id, title, course_id').order('order_index'),
+      supabase.from('courses').select('id, title').order('title'),
+    ]);
+    
+    if (lessonsRes.data) setLessons(lessonsRes.data);
+    if (modulesRes.data) setModules(modulesRes.data);
+    if (coursesRes.data) setCourses(coursesRes.data);
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (courseId) {
-      setFilteredModules(modules.filter(m => m.course_id === courseId));
-    } else {
-      setFilteredModules([]);
-    }
-    setModuleId("");
-  }, [courseId, modules]);
-
-  const fetchData = async () => {
-    try {
-      const { data: coursesData } = await supabase
-        .from('courses')
-        .select('id, title')
-        .order('order_index');
-      setCourses(coursesData || []);
-
-      const { data: modulesData } = await supabase
-        .from('modules')
-        .select('id, title, course_id, courses(title)')
-        .eq('is_active', true)
-        .order('order_index');
-      setModules(modulesData as Module[] || []);
-
-      const { data: lessonsData } = await supabase
-        .from('lessons')
-        .select('*, modules(title, courses(title))')
-        .order('order_index');
-      setLessons(lessonsData as Lesson[] || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setTitle("");
-    setContent("");
-    setVideoUrl("");
-    setCourseId("");
-    setModuleId("");
-    setXpReward(10);
-    setDuration(0);
-    setEditingLesson(null);
-  };
-
-  const handleEdit = (lesson: Lesson) => {
-    setEditingLesson(lesson);
-    setTitle(lesson.title);
-    setContent(lesson.content || "");
-    setVideoUrl(lesson.video_url || "");
-    // Find the module to get the course_id
-    const lessonModule = modules.find(m => m.id === lesson.module_id);
-    if (lessonModule) {
-      setCourseId(lessonModule.course_id);
-      setFilteredModules(modules.filter(m => m.course_id === lessonModule.course_id));
-    }
-    setModuleId(lesson.module_id || "");
-    setXpReward(lesson.xp_reward);
-    setDuration(lesson.duration_minutes);
-    setDialogOpen(true);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!moduleId) {
-      toast({ title: "Erro", description: "Selecione um módulo", variant: "destructive" });
+      toast.error("Selecione um módulo");
       return;
     }
 
     const selectedModule = modules.find(m => m.id === moduleId);
     
+    // Tente usar RPC primeiro
+    try {
+      const { data, error } = await supabase.rpc('admin_create_lesson', {
+        p_course_id: selectedModule?.course_id || courseId,
+        p_title: title,
+        p_content: content,
+        p_video_url: videoUrl || null,
+        p_duration_minutes: duration,
+        p_xp_reward: xpReward,
+        p_module_id: moduleId,
+        p_order_index: 0
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Aula criada via RPC!");
+      setDialogOpen(false);
+      resetForm();
+      fetchData();
+      return;
+    } catch (rpcError) {
+      console.log("RPC failed, trying direct insert:", rpcError);
+    }
+
+    // Se RPC falhar, tente inserção direta
     const lessonData = {
       title,
       content,
@@ -166,46 +126,56 @@ const ManageLessons = () => {
           .eq('id', editingLesson.id);
         
         if (error) throw error;
-        toast({ title: "Sucesso", description: "Aula atualizada!" });
+        toast.success("Aula atualizada!");
       } else {
         const { error } = await supabase
           .from('lessons')
           .insert(lessonData);
         
         if (error) throw error;
-        toast({ title: "Sucesso", description: "Aula criada!" });
+        toast.success("Aula criada!");
       }
 
       setDialogOpen(false);
       resetForm();
       fetchData();
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error(error.message);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta aula?")) return;
-
-    try {
-      const { error } = await supabase.from('lessons').delete().eq('id', id);
-      if (error) throw error;
-      toast({ title: "Sucesso", description: "Aula excluída!" });
-      fetchData();
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    const { error } = await supabase.from('lessons').delete().eq('id', id);
+    if (error) {
+      toast.error("Erro ao excluir aula");
+      return;
     }
+    toast.success("Aula excluída!");
+    fetchData();
   };
 
-  // Group lessons by module
-  const lessonsByModule = lessons.reduce((acc, lesson) => {
-    const moduleTitle = lesson.modules?.title || "Sem Módulo";
-    const courseTitle = lesson.modules?.courses?.title || "Sem Curso";
-    const key = `${courseTitle} > ${moduleTitle}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(lesson);
-    return acc;
-  }, {} as Record<string, Lesson[]>);
+  const handleEdit = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+    setTitle(lesson.title);
+    setContent(lesson.content || "");
+    setVideoUrl(lesson.video_url || "");
+    setDuration(lesson.duration_minutes || 0);
+    setXpReward(lesson.xp_reward || 10);
+    setModuleId(lesson.module_id || "");
+    setDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setEditingLesson(null);
+    setTitle("");
+    setContent("");
+    setVideoUrl("");
+    setDuration(0);
+    setXpReward(10);
+    setModuleId("");
+    setCourseId("");
+  };
 
   if (loading) {
     return (
@@ -217,24 +187,19 @@ const ManageLessons = () => {
 
   return (
     <div className="min-h-screen bg-background dark">
-      {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/teacher" className="text-muted-foreground hover:text-foreground">
+            <Link to="/teacher">
               <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
             </Link>
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Code2 className="w-5 h-5 text-primary-foreground" />
+                <BookOpen className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="font-display text-lg font-bold text-foreground">Gerenciar Aulas</span>
             </div>
           </div>
-
-          <Button variant="outline" size="icon" onClick={signOut}>
-            <LogOut className="w-5 h-5 text-foreground" />
-          </Button>
         </div>
       </header>
 
@@ -244,173 +209,122 @@ const ManageLessons = () => {
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Aulas</h1>
             <p className="text-muted-foreground">{lessons.length} aulas cadastradas</p>
           </div>
-          
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary hover:opacity-90">
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Aula
+                <Plus className="w-4 h-4 mr-2" />Nova Aula
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingLesson ? "Editar Aula" : "Nova Aula"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Curso</Label>
-                    <Select value={courseId} onValueChange={setCourseId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o curso" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {courses.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>{course.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Módulo *</Label>
-                    <Select value={moduleId} onValueChange={setModuleId} disabled={!courseId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={courseId ? "Selecione o módulo" : "Selecione um curso primeiro"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredModules.map((module) => (
-                          <SelectItem key={module.id} value={module.id}>{module.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {courseId && filteredModules.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Nenhum módulo encontrado. <Link to="/teacher/modules" className="text-primary underline">Crie um módulo primeiro.</Link>
-                      </p>
-                    )}
-                  </div>
+                <div>
+                  <Label htmlFor="module">Módulo *</Label>
+                  <Select value={moduleId} onValueChange={setModuleId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um módulo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modules.map((module) => (
+                        <SelectItem key={module.id} value={module.id}>{module.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Título</Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Conteúdo</Label>
-                  <Textarea 
-                    value={content} 
-                    onChange={(e) => setContent(e.target.value)} 
-                    rows={5}
-                    placeholder="Conteúdo da aula em texto ou Markdown..."
+                <div>
+                  <Label htmlFor="title">Título da Aula</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ex: Introdução ao Python"
+                    required
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label>URL do Vídeo (opcional)</Label>
-                  <Input 
-                    value={videoUrl} 
+                <div>
+                  <Label htmlFor="content">Conteúdo</Label>
+                  <Textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Conteúdo da aula..."
+                    rows={4}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="video_url">URL do Vídeo</Label>
+                  <Input
+                    id="video_url"
+                    value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://youtube.com/..."
+                    placeholder="https://youtube.com/watch?v=..."
                   />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>XP de Recompensa</Label>
-                    <Input 
-                      type="number" 
-                      value={xpReward} 
-                      onChange={(e) => setXpReward(Number(e.target.value))}
-                      min={0}
+                  <div>
+                    <Label htmlFor="duration">Duração (minutos)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={duration}
+                      onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Duração (minutos)</Label>
-                    <Input 
-                      type="number" 
-                      value={duration} 
-                      onChange={(e) => setDuration(Number(e.target.value))}
-                      min={0}
+                  <div>
+                    <Label htmlFor="xp_reward">XP</Label>
+                    <Input
+                      id="xp_reward"
+                      type="number"
+                      value={xpReward}
+                      onChange={(e) => setXpReward(parseInt(e.target.value) || 0)}
                     />
                   </div>
                 </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
-                  </Button>
+                <DialogFooter>
                   <Button type="submit" className="bg-gradient-primary">
-                    {editingLesson ? "Salvar" : "Criar"}
+                    {editingLesson ? "Salvar" : "Criar Aula"}
                   </Button>
-                </div>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
-        {Object.keys(lessonsByModule).length > 0 ? (
-          <div className="space-y-8">
-            {Object.entries(lessonsByModule).map(([groupName, groupLessons]) => (
-              <div key={groupName}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Layers className="w-5 h-5 text-primary" />
-                  <h2 className="font-display text-lg font-semibold text-foreground">{groupName}</h2>
-                  <Badge variant="secondary">{groupLessons.length}</Badge>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {lessons.map((lesson) => (
+            <Card key={lesson.id} className="glass border-border/50 hover:border-primary/30 transition-colors">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  {lesson.video_url ? (
+                    <Video className="w-4 h-4 text-primary" />
+                  ) : (
+                    <BookOpen className="w-4 h-4 text-primary" />
+                  )}
+                  <Badge variant="secondary" className="bg-muted">
+                    {lesson.duration_minutes || 0} min
+                  </Badge>
+                  <Badge variant="secondary" className="bg-xp/10 text-xp">
+                    <Zap className="w-3 h-3 mr-1" />
+                    {lesson.xp_reward || 0} XP
+                  </Badge>
                 </div>
-                <div className="grid gap-3">
-                  {groupLessons.map((lesson) => (
-                    <Card key={lesson.id} className="glass border-border/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center">
-                              {lesson.video_url ? <Video className="w-6 h-6 text-white" /> : <BookOpen className="w-6 h-6 text-white" />}
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-foreground">{lesson.title}</h3>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="bg-xp/10 text-xp">
-                                <Zap className="w-3 h-3 mr-1" />
-                                {lesson.xp_reward} XP
-                              </Badge>
-                              {lesson.duration_minutes > 0 && (
-                                <Badge variant="secondary">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {lesson.duration_minutes} min
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => handleEdit(lesson)}>
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(lesson.id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <CardTitle className="text-lg">{lesson.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(lesson)}>
+                    <Pencil className="w-4 h-4 mr-1" />Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(lesson.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Card className="glass border-border/50">
-            <CardContent className="p-8 text-center">
-              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhuma aula cadastrada. Clique em "Nova Aula" para começar.</p>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </main>
     </div>
   );
