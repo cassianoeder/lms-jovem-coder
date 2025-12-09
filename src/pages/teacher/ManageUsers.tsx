@@ -12,13 +12,13 @@ import { toast } from "sonner";
 import { 
   ArrowLeft, Users, Search, Edit, Trash2, LogOut
 } from "lucide-react";
-import { useAuth, AppRole } from "@/hooks/useAuth"; // Importar AppRole
+import { useAuth, AppRole } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { User as SupabaseUser } from '@supabase/supabase-js'; // Importar o tipo User do Supabase
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface UserWithRole {
   user_id: string;
-  full_name: string | null; // Pode ser nulo
+  full_name: string | null;
   email: string;
   role: AppRole;
   created_at: string;
@@ -26,7 +26,7 @@ interface UserWithRole {
 }
 
 const ManageUsers = () => {
-  const { user, role: currentUserRole, signOut } = useAuth(); // Adicionado 'user' para o cabeçalho
+  const { user, role: currentUserRole, signOut } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,8 +48,11 @@ const ManageUsers = () => {
       // Fetch all auth users
       const { data: authUsersData, error: authUsersError } = await supabase.auth.admin.listUsers();
       if (authUsersError) throw authUsersError;
+      
       const authUsersMap = new Map<string, SupabaseUser>();
-      authUsersData.users.forEach(u => authUsersMap.set(u.id, u));
+      if (authUsersData && authUsersData.users) {
+        authUsersData.users.forEach((u: SupabaseUser) => authUsersMap.set(u.id, u)); // Corrigido: tipagem explícita para 'u'
+      }
 
       // Fetch all profiles
       const { data: profilesData, error: profilesError } = await supabase
@@ -57,7 +60,7 @@ const ManageUsers = () => {
         .select('user_id, full_name, avatar_url, created_at');
       if (profilesError) throw profilesError;
       const profilesMap = new Map<string, { user_id: string; full_name: string | null; avatar_url: string | null; created_at: string; }>();
-      profilesData.forEach(p => profilesMap.set(p.user_id, p));
+      profilesData?.forEach(p => profilesMap.set(p.user_id, p));
 
       // Fetch all user roles
       const { data: userRolesData, error: userRolesError } = await supabase
@@ -65,7 +68,7 @@ const ManageUsers = () => {
         .select('user_id, role');
       if (userRolesError) throw userRolesError;
       const userRolesMap = new Map<string, { user_id: string; role: AppRole; }>();
-      userRolesData.forEach(ur => userRolesMap.set(ur.user_id, ur as { user_id: string; role: AppRole; }));
+      userRolesData?.forEach(ur => userRolesMap.set(ur.user_id, ur as { user_id: string; role: AppRole; }));
 
       const combinedUsers: UserWithRole[] = [];
       for (const [userId, authUser] of authUsersMap.entries()) {
@@ -132,13 +135,13 @@ const ManageUsers = () => {
 
   const openEditUserDialog = (user: UserWithRole) => {
     setSelectedUser(user);
-    setEditFullName(user.full_name || ''); // Garantir que não é nulo
+    setEditFullName(user.full_name || '');
     setEditRole(user.role);
     setEditUserDialogOpen(true);
   };
 
   const filteredUsers = users.filter(u =>
-    (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || '') || // Adicionado verificação de nulo
+    (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || '') ||
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -185,13 +188,6 @@ const ManageUsers = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {/* <Button 
-            className="bg-gradient-primary hover:opacity-90"
-            onClick={() => { /* Open create user dialog * / }}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Novo Usuário
-          </Button> */}
         </div>
 
         {filteredUsers.length === 0 ? (
@@ -239,7 +235,7 @@ const ManageUsers = () => {
                       <Button size="sm" variant="outline" onClick={() => openEditUserDialog(user)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      {currentUserRole === 'admin' && ( // Apenas admins podem deletar
+                      {currentUserRole === 'admin' && (
                         <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleDeleteUser(user.user_id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
