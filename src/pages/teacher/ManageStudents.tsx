@@ -106,37 +106,45 @@ const ManageStudents = () => {
   const fetchStudentStats = async () => {
     try {
       // Total students
-      const { count: totalStudents } = await supabase
+      const { count: totalStudents, error: totalError } = await supabase
         .from('user_roles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'student');
+
+      if (totalError) throw totalError;
 
       // Active students (with recent activity)
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
-      const { count: activeStudents } = await supabase
+      const { count: activeStudents, error: activeError } = await supabase
         .from('student_progress')
         .select('user_id', { count: 'exact', head: true })
         .gte('created_at', oneWeekAgo.toISOString())
         .neq('lesson_id', null);
 
+      if (activeError) throw activeError;
+
       // Average XP
-      const { data: xpData } = await supabase
+      const { data: xpData, error: xpError } = await supabase
         .from('student_xp')
         .select('total_xp');
       
+      if (xpError) throw xpError;
+
       const avgXp = xpData && xpData.length > 0 
         ? Math.round(xpData.reduce((sum, student) => sum + (student.total_xp || 0), 0) / xpData.length)
         : 0;
 
       // Top level
-      const { data: levelData } = await supabase
+      const { data: levelData, error: levelError } = await supabase
         .from('student_xp')
         .select('level')
         .order('level', { ascending: false })
         .limit(1);
       
+      if (levelError) throw levelError;
+
       const topLevel = levelData && levelData.length > 0 ? levelData[0].level || 1 : 1;
 
       setStats({
@@ -148,6 +156,7 @@ const ManageStudents = () => {
       });
     } catch (error) {
       console.error('Error fetching student stats:', error);
+      toast.error("Erro ao carregar estatísticas dos alunos");
     }
   };
 
@@ -238,6 +247,7 @@ const ManageStudents = () => {
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error("Erro ao carregar alunos");
+      setStudents([]); // Set empty array on error to avoid infinite loading
     } finally {
       setLoading(false);
     }
@@ -398,20 +408,77 @@ const ManageStudents = () => {
 
     setIsCreating(true);
     try {
-      // Usar a função RPC para criar usuário sem login automático
-      const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: newStudentEmail,
-        p_password: newStudentPassword,
-        p_full_name: newStudentName,
-        p_role: 'student'
+      // Criar usuário usando signup normal (não faz login automático)
+      const { data, error } = await supabase.auth.signUp({
+        email: newStudentEmail,
+        password: newStudentPassword,
+        options: {
+          data: {
+            full_name: newStudentName,
+            role: 'student'
+          }
+        }
       });
 
       if (error) throw error;
+
+      // Se o usuário foi criado com sucesso, vamos adicionar os registros adicionais
+      if (data.user) {
+        const userId = data.user.id;
+        
+        // Criar profile se não existir
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            user_id: userId,
+            full_name: newStudentName,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (profileError) throw profileError;
+
+        // Criar role se não existir
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: userId,
+            role: 'student',
+            created_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (roleError) throw roleError;
+
+        // Criar XP inicial se não existir
+        const { error: xpError } = await supabase
+          .from('student_xp')
+          .upsert({
+            user_id: userId,
+            total_xp: 0,
+            level: 1,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (xpError) throw xpError;
+
+        // Criar streak inicial se não existir
+        const { error: streakError } = await supabase
+          .from('streaks')
+          .upsert({
+            user_id: userId,
+            current_streak: 0,
+            longest_streak: 0,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (streakError) throw streakError;
+      }
 
       toast.success("Aluno criado com sucesso!");
       setCreateStudentDialogOpen(false);
       resetCreateStudentForm();
       fetchStudents(); // Atualizar a lista de alunos
+      fetchStudentStats(); // Atualizar estatísticas
     } catch (error: any) {
       console.error('Error creating student:', error);
       toast.error("Erro ao criar aluno: " + error.message);
