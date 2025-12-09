@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Zap, Target, BookOpen, ArrowRight, Star, Flame } from "lucide-react";
+import { Trophy, Users, Zap, Target, BookOpen, ArrowRight, Star, Flame, Code, Brain, FileCode, Globe } from "lucide-react";
 
 const Landing = () => {
   return (
@@ -48,15 +48,98 @@ const Landing = () => {
         </div>
       </div>
 
+      {/* Ícones de programação animados atrás do banner */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Python - Top Left */}
+        <div className="absolute top-20 left-10 lg:top-32 lg:left-20 animate-float-slow" style={{ animationDelay: '0s' }}>
+          <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 flex items-center justify-center shadow-lg">
+            <svg viewBox="0 0 24 24" className="w-8 h-8 lg:w-10 lg:h-10 text-blue-400" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              <path d="M8.5 8.5c.83 0 1.5-.67 1.5-1.5S9.33 5.5 8.5 5.5 7 6.17 7 7s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* IA - Top Right */}
+        <div className="absolute top-32 right-10 lg:top-40 lg:right-20 animate-float" style={{ animationDelay: '1s' }}>
+          <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-purple-500/20 backdrop-blur-sm border border-purple-400/30 flex items-center justify-center shadow-lg">
+            <Brain className="w-8 h-8 lg:w-10 lg:h-10 text-purple-400" />
+          </div>
+        </div>
+
+        {/* Código - Bottom Left */}
+        <div className="absolute bottom-40 left-20 lg:bottom-60 lg:left-32 animate-float-slow" style={{ animationDelay: '2s' }}>
+          <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-green-500/20 backdrop-blur-sm border border-green-400/30 flex items-center justify-center shadow-lg">
+            <Code className="w-8 h-8 lg:w-10 lg:h-10 text-green-400" />
+          </div>
+        </div>
+
+        {/* HTML - Bottom Right */}
+        <div className="absolute bottom-20 right-20 lg:bottom-32 lg:right-32 animate-float" style={{ animationDelay: '3s' }}>
+          <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-orange-500/20 backdrop-blur-sm border border-orange-400/30 flex items-center justify-center shadow-lg">
+            <FileCode className="w-8 h-8 lg:w-10 lg:h-10 text-orange-400" />
+          </div>
+        </div>
+
+        {/* Python adicional - Middle Left */}
+        <div className="absolute top-1/2 left-5 lg:left-10 animate-float" style={{ animationDelay: '1.5s' }}>
+          <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl bg-blue-500/15 backdrop-blur-sm border border-blue-400/25 flex items-center justify-center shadow-md">
+            <svg viewBox="0 0 24 24" className="w-6 h-6 lg:w-8 lg:h-8 text-blue-400" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              <path d="M8.5 8.5c.83 0 1.5-.67 1.5-1.5S9.33 5.5 8.5 5.5 7 6.17 7 7s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* IA adicional - Middle Right */}
+        <div className="absolute top-1/3 right-5 lg:right-10 animate-float-slow" style={{ animationDelay: '2.5s' }}>
+          <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl bg-purple-500/15 backdrop-blur-sm border border-purple-400/25 flex items-center justify-center shadow-md">
+            <Brain className="w-6 h-6 lg:w-8 lg:h-8 text-purple-400" />
+          </div>
+        </div>
+
+        {/* Código adicional - Top Center */}
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 animate-float" style={{ animationDelay: '0.5s' }}>
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg bg-green-500/15 backdrop-blur-sm border border-green-400/25 flex items-center justify-center shadow-md">
+            <Code className="w-5 h-5 lg:w-6 lg:h-6 text-green-400" />
+          </div>
+        </div>
+
+        {/* HTML adicional - Bottom Center */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-float-slow" style={{ animationDelay: '3.5s' }}>
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-lg bg-orange-500/15 backdrop-blur-sm border border-orange-400/25 flex items-center justify-center shadow-md">
+            <FileCode className="w-5 h-5 lg:w-6 lg:h-6 text-orange-400" />
+          </div>
+        </div>
+      </div>
+
       {/* Navigation */}
       <nav className="relative z-10 sticky top-0 glass backdrop-blur-lg border-b border-primary/10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
 
-          {/* LOGO */}
+          {/* LOGO - CABEÇA DE ASTRONAUTA */}
           <Link to="/" className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-primary flex items-center justify-center shadow-xl">
-              <svg viewBox="0 0 64 64" className="w-6 h-6 text-white fill-current">
-                <path d="M32 4c6 0 11 5 11 11s-5 11-11 11S21 21 21 15 26 4 32 4zm0 26c-9 0-18 4-18 12v6h36v-6c0-8-9-12-18-12z"/>
+              <svg viewBox="0 0 100 100" className="w-6 h-6 text-white fill-current">
+                {/* Capacete do astronauta */}
+                <ellipse cx="50" cy="35" rx="28" ry="25" fill="white" />
+                <ellipse cx="50" cy="35" rx="28" ry="25" fill="url(#helmetGradient)" opacity="0.3" />
+                <rect x="22" y="30" width="56" height="20" rx="10" fill="white" />
+                <rect x="22" y="30" width="56" height="20" rx="10" fill="url(#visorGradient)" opacity="0.8" />
+                <ellipse cx="50" cy="40" rx="25" ry="8" fill="#1a1a2e" opacity="0.3" />
+                <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
+                <path d="M 22 35 Q 50 25 78 35" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
+                <path d="M 25 50 Q 50 45 75 50" stroke="white" strokeWidth="1" fill="none" opacity="0.3" />
+                <defs>
+                  <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4" />
+                  </linearGradient>
+                  <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#357abd" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
 
@@ -90,8 +173,26 @@ const Landing = () => {
           {/* LOGO CENTRAL */}
           <div className="flex justify-center mb-6 animate-float">
             <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center shadow-2xl">
-              <svg viewBox="0 0 64 64" className="w-10 h-10 text-white fill-current">
-                <path d="M32 4c6 0 11 5 11 11s-5 11-11 11S21 21 21 15 26 4 32 4zm0 26c-9 0-18 4-18 12v6h36v-6c0-8-9-12-18-12z"/>
+              <svg viewBox="0 0 100 100" className="w-10 h-10 text-white fill-current">
+                {/* Capacete do astronauta */}
+                <ellipse cx="50" cy="35" rx="28" ry="25" fill="white" />
+                <ellipse cx="50" cy="35" rx="28" ry="25" fill="url(#helmetGradient)" opacity="0.3" />
+                <rect x="22" y="30" width="56" height="20" rx="10" fill="white" />
+                <rect x="22" y="30" width="56" height="20" rx="10" fill="url(#visorGradient)" opacity="0.8" />
+                <ellipse cx="50" cy="40" rx="25" ry="8" fill="#1a1a2e" opacity="0.3" />
+                <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
+                <path d="M 22 35 Q 50 25 78 35" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
+                <path d="M 25 50 Q 50 45 75 50" stroke="white" strokeWidth="1" fill="none" opacity="0.3" />
+                <defs>
+                  <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4" />
+                  </linearGradient>
+                  <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#357abd" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
           </div>
@@ -238,8 +339,26 @@ launch_programming()`}
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <svg viewBox="0 0 64 64" className="w-5 h-5 text-white fill-current">
-                <path d="M32 4c6 0 11 5 11 11s-5 11-11 11S21 21 21 15 26 4 32 4zm0 26c-9 0-18 4-18 12v6h36v-6c0-8-9-12-18-12z"/>
+              <svg viewBox="0 0 100 100" className="w-5 h-5 text-white fill-current">
+                {/* Capacete do astronauta */}
+                <ellipse cx="50" cy="35" rx="28" ry="25" fill="white" />
+                <ellipse cx="50" cy="35" rx="28" ry="25" fill="url(#helmetGradient)" opacity="0.3" />
+                <rect x="22" y="30" width="56" height="20" rx="10" fill="white" />
+                <rect x="22" y="30" width="56" height="20" rx="10" fill="url(#visorGradient)" opacity="0.8" />
+                <ellipse cx="50" cy="40" rx="25" ry="8" fill="#1a1a2e" opacity="0.3" />
+                <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
+                <path d="M 22 35 Q 50 25 78 35" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
+                <path d="M 25 50 Q 50 45 75 50" stroke="white" strokeWidth="1" fill="none" opacity="0.3" />
+                <defs>
+                  <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4" />
+                  </linearGradient>
+                  <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#357abd" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
             <span className="font-display font-bold text-foreground">
