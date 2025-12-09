@@ -35,6 +35,7 @@ interface StudentProgress {
   total_lessons: number;
   completion_rate: number;
   class_name: string | null;
+  enrollment_status: string | null; // Added enrollment_status
 }
 
 const StudentStatistics = () => {
@@ -60,42 +61,22 @@ const StudentStatistics = () => {
     try {
       setLoading(true);
       
-      // Fetch system-wide student statistics
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('profiles')
-        .select(`
-          user_id,
-          full_name,
-          student_xp (
-            total_xp,
-            level
-          ),
-          streaks (
-            current_streak
-          ),
-          enrollments (
-            status,
-            classes (
-              name
-            )
-          )
-        `);
+      // Call the new Supabase function to get all student data
+      const { data: studentsData, error: studentsError } = await supabase.rpc('get_all_students_data');
 
       if (studentsError) throw studentsError;
 
+      const allStudents: StudentProgress[] = studentsData || [];
+
       // Calculate system statistics
-      const totalStudents = studentsData.length;
-      const activeStudents = studentsData.filter((s: any) => 
-        s.enrollments?.some((e: any) => e.status === 'approved')
-      ).length;
-      const pendingStudents = studentsData.filter((s: any) => 
-        s.enrollments?.some((e: any) => e.status === 'pending')
-      ).length;
+      const totalStudents = allStudents.length;
+      const activeStudents = allStudents.filter(s => s.enrollment_status === 'approved').length;
+      const pendingStudents = allStudents.filter(s => s.enrollment_status === 'pending').length;
       
       // Calculate averages
-      const totalXP = studentsData.reduce((sum: number, s: any) => sum + (s.student_xp?.[0]?.total_xp || 0), 0);
-      const totalLevel = studentsData.reduce((sum: number, s: any) => sum + (s.student_xp?.[0]?.level || 1), 0);
-      const totalStreak = studentsData.reduce((sum: number, s: any) => sum + (s.streaks?.[0]?.current_streak || 0), 0);
+      const totalXP = allStudents.reduce((sum, s) => sum + (s.total_xp || 0), 0);
+      const totalLevel = allStudents.reduce((sum, s) => sum + (s.level || 1), 0);
+      const totalStreak = allStudents.reduce((sum, s) => sum + (s.current_streak || 0), 0);
       
       const averageXP = totalStudents > 0 ? Math.round(totalXP / totalStudents) : 0;
       const averageLevel = totalStudents > 0 ? Math.round(totalLevel / totalStudents) : 0;
@@ -110,29 +91,13 @@ const StudentStatistics = () => {
         average_streak: averageStreak
       });
 
-      // Transform student data for top students list
-      const transformedStudents = studentsData.map((profile: any) => {
-        const enrollment = profile.enrollments?.[0] || null;
-        
-        return {
-          id: profile.user_id,
-          full_name: profile.full_name || 'Nome não disponível',
-          total_xp: profile.student_xp?.[0]?.total_xp || 0,
-          level: profile.student_xp?.[0]?.level || 1,
-          current_streak: profile.streaks?.[0]?.current_streak || 0,
-          completed_lessons: 0, // Will be calculated separately
-          total_lessons: 0, // Will be calculated separately
-          completion_rate: 0, // Will be calculated separately
-          class_name: enrollment?.classes?.name || null
-        };
-      })
-      .sort((a: StudentProgress, b: StudentProgress) => b.total_xp - a.total_xp)
-      .slice(0, 10); // Top 10 students
+      // Top 10 students (already sorted by XP in the function, but let's re-sort for safety)
+      const sortedStudents = [...allStudents].sort((a, b) => b.total_xp - a.total_xp).slice(0, 10);
+      setTopStudents(sortedStudents);
 
-      setTopStudents(transformedStudents);
     } catch (error) {
       console.error('Error fetching statistics:', error);
-      toast.error('Erro ao carregar estatísticas');
+      toast.error('Erro ao carregar estatísticas: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }

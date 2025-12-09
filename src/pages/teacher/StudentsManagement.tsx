@@ -57,61 +57,13 @@ const StudentsManagement = () => {
     try {
       setLoading(true);
       
-      // Fetch all students in the system with their data
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          user_id,
-          full_name,
-          avatar_url,
-          created_at,
-          users:users!inner (
-            email
-          ),
-          student_xp:student_xp (
-            total_xp,
-            level
-          ),
-          streaks:streaks (
-            current_streak,
-            last_activity_date
-          ),
-          enrollments:enrollments (
-            status,
-            classes:classes (
-              name
-            )
-          ),
-          user_roles:user_roles (
-            role
-          )
-        `)
-        .eq('user_roles.role', 'student')
-        .order('created_at', { ascending: false });
+      // Call the new Supabase function to get all student data
+      const { data, error } = await supabase.rpc('get_all_students_data');
 
       if (error) throw error;
 
-      // Transform data to match Student interface
-      const transformedStudents = data.map((profile: any) => {
-        const enrollment = profile.enrollments?.[0] || null;
-        
-        return {
-          id: profile.user_id,
-          full_name: profile.full_name || 'Nome não disponível',
-          email: profile.users?.email || 'Email não disponível',
-          avatar_url: profile.avatar_url || null,
-          total_xp: profile.student_xp?.[0]?.total_xp || 0,
-          level: profile.student_xp?.[0]?.level || 1,
-          current_streak: profile.streaks?.[0]?.current_streak || 0,
-          last_activity_date: profile.streaks?.[0]?.last_activity_date || null,
-          created_at: profile.created_at,
-          class_name: enrollment?.classes?.name || null,
-          enrollment_status: enrollment?.status || null
-        };
-      });
-
-      setStudents(transformedStudents);
-      setFilteredStudents(transformedStudents);
+      setStudents(data || []);
+      setFilteredStudents(data || []);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error('Erro ao carregar alunos: ' + (error as Error).message);
