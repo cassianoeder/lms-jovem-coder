@@ -1,138 +1,91 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import StudentDashboard from "./pages/student/StudentDashboard";
-import AvailableClasses from "./pages/student/AvailableClasses";
-import MyClasses from "./pages/student/MyClasses";
-import MyCertificates from "./pages/student/MyCertificates";
-import ClassContent from "./pages/student/ClassContent";
-import LessonView from "./pages/student/LessonView";
-import ExerciseView from "./pages/student/ExerciseView";
-import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-import ManageLessons from "./pages/teacher/ManageLessons";
-import ManageExercises from "./pages/teacher/ManageExercises";
-import ManageUsers from "./pages/teacher/ManageUsers";
-import ManageStudents from "./pages/teacher/ManageStudents";
-import ManageClasses from "./pages/teacher/ManageClasses";
-import ManageCourses from "./pages/teacher/ManageCourses";
-import ManageModules from "./pages/teacher/ManageModules";
-import Settings from "./pages/teacher/Settings";
-import NotFound from "./pages/NotFound";
-import SetupGuard from "./components/SetupGuard";
-import CertificateValidation from "./pages/CertificateValidation";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth, AppRole } from './hooks/useAuth';
+import LoginPage from './pages/Login';
+import TeacherLayout from './layouts/TeacherLayout';
+import StudentLayout from './layouts/StudentLayout';
+import AdminLayout from './layouts/AdminLayout';
+import LoadingPage from './components/LoadingPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import TeacherDashboard from './pages/teacher/Dashboard';
+import StudentsManagement from './pages/teacher/StudentsManagement';
+import TeacherCourses from './pages/teacher/Courses';
+import TeacherClasses from './pages/teacher/Classes';
+import TeacherSettings from './pages/teacher/Settings';
+import StudentStatistics from './pages/teacher/StudentStatistics';
+import StudentDashboard from './pages/student/Dashboard';
+import AdminDashboard from './pages/admin/Dashboard';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { supabase } from './integrations/supabase/client';
 
-const queryClient = new QueryClient();
+const HomeRedirect = () => {
+  const { user, role, loading } = useAuth();
+  const navigate = useNavigate();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <SetupGuard>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/certificate/validate/:validationCode" element={<CertificateValidation />} />
-              
-              {/* Student Routes */}
-              <Route path="/student" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <StudentDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/student/classes" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <AvailableClasses />
-                </ProtectedRoute>
-              } />
-              <Route path="/student/my-classes" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <MyClasses />
-                </ProtectedRoute>
-              } />
-              <Route path="/student/class/:classId" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <ClassContent />
-                </ProtectedRoute>
-              } />
-              <Route path="/student/certificates" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <MyCertificates />
-                </ProtectedRoute>
-              } />
-              <Route path="/student/lesson/:lessonId" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <LessonView />
-                </ProtectedRoute>
-              } />
-              <Route path="/student/exercise/:exerciseId" element={
-                <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                  <ExerciseView />
-                </ProtectedRoute>
-              } />
-              
-              {/* Teacher/Admin Routes */}
-              <Route path="/teacher" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <TeacherDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/classes" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <ManageClasses />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/courses" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <ManageCourses />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/modules" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <ManageModules />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/lessons" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <ManageLessons />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/exercises" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <ManageExercises />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/students" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <ManageStudents />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/users" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <ManageUsers />
-                </ProtectedRoute>
-              } />
-              <Route path="/teacher/settings" element={
-                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                  <Settings />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </SetupGuard>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  useEffect(() => {
+    if (!loading) { // Only act when loading is complete
+      if (user) {
+        // User is logged in, now determine where to send them based on role
+        if (role === 'teacher' || role === 'admin') {
+          navigate('/teacher/dashboard', { replace: true });
+        } else if (role === 'student') {
+          navigate('/student/dashboard', { replace: true });
+        } else {
+          // This case should ideally not happen if handle_new_user works
+          // If user is logged in but has no recognized role, or role is null
+          console.warn('User logged in but no recognized role found. Redirecting to login.');
+          toast.error('Sua conta não possui um papel definido. Por favor, contate o suporte.');
+          supabase.auth.signOut(); // Force sign out if role is ambiguous
+          navigate('/login', { replace: true });
+        }
+      } else {
+        // User is not logged in, redirect to login page
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [loading, user, role, navigate]); // Depend on loading, user, and role
+
+  if (loading) {
+    return <LoadingPage />; // Show loading screen while auth state is being determined
+  }
+  return null; // This component doesn't render anything once redirection is handled
+};
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<HomeRedirect />} /> {/* Handles initial redirect */}
+
+        {/* Teacher Routes */}
+        <Route path="/teacher" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><TeacherLayout /></ProtectedRoute>}>
+          <Route path="dashboard" element={<TeacherDashboard />} />
+          <Route path="students" element={<StudentsManagement />} />
+          <Route path="courses" element={<TeacherCourses />} />
+          <Route path="classes" element={<TeacherClasses />} />
+          <Route path="settings" element={<TeacherSettings />} />
+          <Route path="statistics" element={<StudentStatistics />} />
+          {/* Add other teacher routes here */}
+        </Route>
+
+        {/* Student Routes */}
+        <Route path="/student" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout /></ProtectedRoute>}>
+          <Route path="dashboard" element={<StudentDashboard />} />
+          {/* Add other student routes here */}
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          {/* Add other admin routes here */}
+        </Route>
+
+        {/* Fallback for unknown routes */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
 
 export default App;

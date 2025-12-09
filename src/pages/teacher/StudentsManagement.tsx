@@ -32,7 +32,7 @@ interface Student {
 }
 
 const StudentsManagement = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth(); // Corrected destructuring
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

@@ -37,77 +37,22 @@ const Settings = () => {
 
     setIsCreating(true);
     try {
-      // Check if user already exists
-      const { data: existingUsers, error: fetchError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email);
-
-      if (fetchError) throw fetchError;
-
-      if (existingUsers && existingUsers.length > 0) {
-        toast.error('Já existe um usuário com este email');
-        setIsCreating(false);
-        return;
-      }
-
       // Create user in auth table using admin API
+      // The handle_new_user trigger will automatically create profile, role, xp, and streak
       const { data, error } = await supabase.auth.admin.createUser({
         email,
         password,
-        email_confirm: true,
+        email_confirm: true, // Automatically confirm email
         user_metadata: {
           full_name: fullName,
-          role: 'student'
+          role: 'student' // Pass the role to the trigger
         }
       });
 
       if (error) throw error;
 
       if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            user_id: data.user.id,
-            full_name: fullName,
-          }, { onConflict: 'user_id' });
-
-        if (profileError) throw profileError;
-
-        // Create role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: data.user.id,
-            role: 'student',
-          }, { onConflict: 'user_id' });
-
-        if (roleError) throw roleError;
-
-        // Create XP record
-        const { error: xpError } = await supabase
-          .from('student_xp')
-          .upsert({
-            user_id: data.user.id,
-            total_xp: 0,
-            level: 1,
-          }, { onConflict: 'user_id' });
-
-        if (xpError) throw xpError;
-
-        // Create streak record
-        const { error: streakError } = await supabase
-          .from('streaks')
-          .upsert({
-            user_id: data.user.id,
-            current_streak: 0,
-            longest_streak: 0,
-          }, { onConflict: 'user_id' });
-
-        if (streakError) throw streakError;
-
-        toast.success('Conta de aluno criada com sucesso!');
+        toast.success('Conta de aluno criada com sucesso! O perfil e o papel foram configurados automaticamente.');
         setFullName('');
         setEmail('');
         setPassword('');
