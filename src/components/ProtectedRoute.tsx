@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
-type AppRole = 'student' | 'teacher' | 'coordinator' | 'admin';
+type AppRole = 'student' | 'teacher' | 'admin';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -30,9 +30,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     const roleRoutes: Record<AppRole, string> = {
       student: '/student',
       teacher: '/teacher',
-      coordinator: '/coordinator',
-      admin: '/coordinator',
+      admin: '/teacher',
     };
+    
     return <Navigate to={roleRoutes[role]} replace />;
   }
 

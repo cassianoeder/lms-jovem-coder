@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { User } from '@supabase/supabase-js';
 
-type AppRole = 'student' | 'teacher' | 'coordinator' | 'admin';
+type AppRole = 'student' | 'teacher' | 'admin';
 
 interface AuthContextType {
   user: User | null;
@@ -68,7 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .single();
 
     if (roleData) {
-      setRole(roleData.role);
+      // Converter coordenador para teacher
+      const userRole = roleData.role === 'coordinator' ? 'teacher' : roleData.role;
+      setRole(userRole as AppRole);
     }
   };
 
