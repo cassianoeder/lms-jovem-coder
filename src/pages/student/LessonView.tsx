@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { checkAndIssueModuleCertificate } from "@/utils/certificateUtils"; // Import the new utility
+import { checkAndIssueModuleCertificate, checkAndIssueCourseCertificate } from "@/utils/certificateUtils";
 
 interface Lesson {
   id: string;
@@ -109,9 +109,9 @@ const LessonView = () => {
 
         console.log("LessonView: Student enrollments", enrollments);
 
-        const classIds = (enrollments || []).map(e => e.class_id);
-        
-        if (classIds.length > 0) {
+        if (enrollments && enrollments.length > 0) {
+          const classIds = enrollments.map(e => e.class_id);
+          
           const { data: classCourses } = await supabase
             .from('class_courses')
             .select('course_id')
@@ -125,7 +125,7 @@ const LessonView = () => {
         }
       }
 
-      // Check if previous lessons in the module are completed
+      // Check if previous lessons in module are completed
       if (lessonData.module_id) {
         const { data: moduleLessons } = await supabase
           .from('lessons')
@@ -259,11 +259,85 @@ const LessonView = () => {
     setCompleting(false);
     toast.success(`Aula concluída! +${lesson.xp_reward} XP`);
 
-    // --- NEW: Check and issue module certificate ---
-    if (lesson.module_id && lesson.course_id) {
-      await checkAndIssueModuleCertificate(user.id, lesson.module_id, lesson.course_id);
+    // --- VERIFICAÇÃO DE CERTIFICADOS ---
+    
+    // 1. Verificar se todos os exercícios da aula foram concluídos
+    if (exercises.length > 0 && completedExercises.length >= exercises.length) {
+      console.log("Todos os exercícios da aula foram concluídos, verificando certificado de módulo...");
+      
+      // 2. Verificar se esta é a última aula do módulo
+      if (lesson.module_id && lesson.course_id) {
+        const { data: moduleLessons } = await supabase
+          .from('lessons')
+          .select('id, order_index')
+          .eq('module_id', lesson.module_id)
+          .order('order_index', { ascending: false }); // Pega a última aula
+        
+        if (moduleLessons && moduleLessons.length > 0) {
+          const lastLesson = moduleLessons[0];
+          
+          // Se esta é a última aula do módulo, emitir certificado de módulo
+          if (lastLesson.id === lesson.id) {
+            console.log("Esta é a última aula do módulo, emitindo certificado de módulo...");
+            await checkAndIssueModuleCertificate(user.id, lesson.module_id, lesson.course_id);
+          } else {
+            console.log("Esta não é a última aula do módulo, não emitindo certificado de módulo ainda.");
+          }
+        }
+      }
     }
-    // --- END NEW ---
+
+    // 3. Verificar se todos os módulos do curso foram concluídos para emitir certificado de curso
+    if (lesson.course_id) {
+      console.log("Verificando se todos os módulos do curso foram concluídos...");
+      
+      const { data: courseModules } = await supabase
+        .from('modules')
+        .select('id, title')
+        .eq('course_id', lesson.course_id)
+        .eq('is_active', true)
+        .order('order_index');
+
+      if (courseModules && courseModules.length > 0) {
+        const moduleIds = courseModules.map(m => m.id);
+        
+        // Verificar se todas as aulas de cada módulo foram concluídas
+        const { data: allModuleLessons } = await supabase
+          .from('lessons')
+          .select('id, module_id')
+          .in('module_id', moduleIds);
+
+        const lessonIds = (allModuleLessons || []).map(l => l.id);
+        
+        if (lessonIds.length > 0) {
+          const { data: allLessonProgress } = await supabase
+            .from('student_progress')
+            .select('lesson_id')
+            .eq('user_id', user.id)
+            .eq('completed', true)
+            .in('lesson_id', lessonIds);
+
+          const completedLessonIds = (allLessonProgress || []).map(p => p.lesson_id);
+          
+          // Verificar se cada módulo tem todas as aulas concluídas
+          const allModulesCompleted = courseModules.every(module => {
+            const moduleLessonIds = (allModuleLessons || [])
+              .filter(l => l.module_id === module.id)
+              .map(l => l.id);
+            
+            return moduleLessonIds.every(lessonId => completedLessonIds.includes(lessonId));
+          });
+
+          if (allModulesCompleted) {
+            console.log("Todos os módulos do curso foram concluídos, emitindo certificado de curso...");
+            await checkAndIssueCourseCertificate(user.id, lesson.course_id);
+          } else {
+            console.log("Nem todos os módulos do curso foram concluídos ainda.");
+          }
+        }
+      }
+    }
+    // --- FIM DA VERIFICAÇÃO DE CERTIFICADOS ---
   };
 
   const isExerciseAccessible = (index: number) => {

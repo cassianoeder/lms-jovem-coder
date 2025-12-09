@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Code2, ArrowLeft, Award, Download, ExternalLink, Copy, CheckCircle } from "lucide-react";
+import { Code2, ArrowLeft, Award, Download, ExternalLink, Copy, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ interface Certificate {
   course_name: string;
   hours_load: number | null;
   score: number | null;
-  pdf_url: string | null; // Renamed from pdf_url to be more generic for image/pdf
+  pdf_url: string | null;
 }
 
 const MyCertificates = () => {
@@ -47,6 +47,33 @@ const MyCertificates = () => {
     setCopiedCode(code);
     toast.success("Código copiado!");
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const downloadCertificate = async (certificate: Certificate) => {
+    if (!certificate.pdf_url) {
+      toast.error("Certificado ainda está sendo processado. Tente novamente em alguns instantes.");
+      return;
+    }
+
+    try {
+      // Fazer download do PDF
+      const response = await fetch(certificate.pdf_url);
+      const blob = await response.blob();
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificado-${certificate.course_name.replace(/\s+/g, '-')}-${certificate.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success("Certificado baixado com sucesso!");
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      toast.error("Erro ao baixar certificado. Tente novamente.");
+    }
   };
 
   if (loading) {
@@ -103,7 +130,7 @@ const MyCertificates = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50">
                       <div>
                         <p className="text-xs text-muted-foreground">Código de Validação</p>
                         <p className="font-mono font-bold text-foreground">{cert.validation_code}</p>
@@ -136,18 +163,23 @@ const MyCertificates = () => {
 
                     <div className="flex gap-2">
                       {cert.pdf_url ? (
-                        <a href={cert.pdf_url} target="_blank" rel="noopener noreferrer" className="flex-1">
-                          <Button className="w-full bg-gradient-primary hover:opacity-90">
-                            <Download className="w-4 h-4 mr-2" />
-                            Baixar Imagem (PNG)
-                          </Button>
-                        </a>
-                      ) : (
-                        <Button className="flex-1 bg-gradient-primary hover:opacity-90" disabled>
+                        <Button 
+                          className="flex-1 bg-gradient-primary hover:opacity-90"
+                          onClick={() => downloadCertificate(cert)}
+                        >
                           <Download className="w-4 h-4 mr-2" />
-                          Imagem em processamento
+                          Baixar PDF
+                        </Button>
+                      ) : (
+                        <Button 
+                          className="flex-1 bg-gradient-primary hover:opacity-90" 
+                          disabled
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Gerando PDF...
                         </Button>
                       )}
+                      
                       <Link to={`/certificate/validate/${cert.validation_code}`}>
                         <Button variant="outline">
                           <ExternalLink className="w-4 h-4" />

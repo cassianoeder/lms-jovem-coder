@@ -11,7 +11,7 @@ type Module = Tables<'modules'>;
 type Course = Tables<'courses'>;
 
 export async function checkAndIssueModuleCertificate(userId: string, moduleId: string, courseId: string) {
-  console.log("--- checkAndIssueModuleCertificate initiated ---");
+  console.log("--- checkAndIssueModuleCertificate iniciado ---");
   console.log({ userId, moduleId, courseId });
 
   if (!userId || !moduleId || !courseId) {
@@ -19,7 +19,7 @@ export async function checkAndIssueModuleCertificate(userId: string, moduleId: s
     return;
   }
 
-  // 1. Fetch all lessons in the module
+  // 1. Fetch all lessons in module
   const { data: lessonsInModule, error: lessonsError } = await supabase
     .from('lessons')
     .select('id, xp_reward')
@@ -68,11 +68,11 @@ export async function checkAndIssueModuleCertificate(userId: string, moduleId: s
   const completedExercises = new Set(studentProgress?.filter(p => p.exercise_id && p.completed).map(p => p.exercise_id));
   const exerciseScores = new Map<string, number>(studentProgress?.filter(p => p.exercise_id && p.score !== null).map(p => [p.exercise_id!, p.score!]) || []);
 
-  // Check if all lessons in the module are completed
+  // Check if all lessons in module are completed
   const allLessonsCompleted = lessonsInModule.every(lesson => completedLessons.has(lesson.id));
   console.log(`All lessons completed in module: ${allLessonsCompleted}`);
 
-  // Check if all exercises in the module are completed
+  // Check if all exercises in module are completed
   const allExercisesCompleted = exercisesInLessons.every(exercise => completedExercises.has(exercise.id));
   console.log(`All exercises completed in module: ${allExercisesCompleted}`);
 
@@ -100,7 +100,7 @@ export async function checkAndIssueModuleCertificate(userId: string, moduleId: s
   }
   console.log("Active certificate template found:", template.name);
 
-  // 5. Calculate average score for the module
+  // 5. Calculate average score for module
   let totalScoreSum = 0;
   let scoredExercisesCount = 0;
 
@@ -208,10 +208,8 @@ export async function checkAndIssueModuleCertificate(userId: string, moduleId: s
     template_id: template.id,
     hours_load: template.hours_load,
     score: averageScore,
-    // Usando um URL de placeholder para uma imagem de certificado.
-    // Em um ambiente de produção, um serviço de backend geraria o PNG real
-    // e faria o upload para um armazenamento (ex: Supabase Storage, S3).
-    pdf_url: `https://via.placeholder.com/800x600/007bff/ffffff?text=Certificado+JovemCoder`, 
+    // Gerar URL público para o certificado
+    pdf_url: `https://mohjrvrknrdrisppfrjq.supabase.co/functions/v1/generate-certificate-pdf?certificate_id=PLACEHOLDER_ID`, // Será atualizado após inserção
   });
 
   if (insertCertError) {
@@ -220,7 +218,269 @@ export async function checkAndIssueModuleCertificate(userId: string, moduleId: s
     return;
   }
 
+  // 11. Atualizar o certificado com o ID correto
+  if (insertCertError) {
+    console.error("Error inserting certificate, cannot update PDF URL");
+    return;
+  }
+
+  // Obter o ID do certificado recém-criado
+  const { data: newCertificate } = await supabase
+    .from('certificates')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('module_id', moduleId)
+    .eq('validation_code', validationCode)
+    .single();
+
+  if (newCertificate) {
+    const pdfUrl = `https://mohjrvrknrdrisppfrjq.supabase.co/functions/v1/generate-certificate-pdf?certificate_id=${newCertificate.id}`;
+    
+    await supabase
+      .from('certificates')
+      .update({ pdf_url: pdfUrl })
+      .eq('id', newCertificate.id);
+  }
+
   toast.success(`Certificado do módulo "${moduleData.title}" emitido!`);
   console.log(`Certificate issued for module ${moduleData.title} to user ${profileData.full_name}.`);
   console.log("--- checkAndIssueModuleCertificate finished ---");
+}
+
+export async function checkAndIssueCourseCertificate(userId: string, courseId: string) {
+  console.log("--- checkAndIssueCourseCertificate iniciado ---");
+  console.log({ userId, courseId });
+
+  if (!userId || !courseId) {
+    console.error("Missing userId or courseId for course certificate check.");
+    return;
+  }
+
+  // 1. Fetch all modules in course
+  const { data: courseModules, error: modulesError } = await supabase
+    .from('modules')
+    .select('id, title')
+    .eq('course_id', courseId)
+    .eq('is_active', true)
+    .order('order_index');
+
+  if (modulesError) {
+    console.error("Error fetching course modules:", modulesError);
+    return;
+  }
+  if (!courseModules || courseModules.length === 0) {
+    console.log(`Course ${courseId} has no modules. Skipping certificate check.`);
+    return;
+  }
+  console.log(`Modules in course ${courseId}:`, courseModules.length);
+
+  const moduleIds = courseModules.map(m => m.id);
+
+  // 2. Fetch all lessons in all modules
+  const { data: allCourseLessons, error: lessonsError } = await supabase
+    .from('lessons')
+    .select('id, module_id')
+    .in('module_id', moduleIds);
+
+  if (lessonsError) {
+    console.error("Error fetching course lessons:", lessonsError);
+    return;
+  }
+  console.log(`Lessons in course:`, allCourseLessons.length);
+
+  const lessonIds = (allCourseLessons || []).map(l => l.id);
+
+  // 3. Fetch all exercises in all lessons
+  const { data: allCourseExercises, error: exercisesError } = await supabase
+    .from('exercises')
+    .select('id, lesson_id')
+    .in('lesson_id', lessonIds);
+
+  if (exercisesError) {
+    console.error("Error fetching course exercises:", exercisesError);
+    return;
+  }
+  console.log(`Exercises in course:`, allCourseExercises.length);
+
+  const exerciseIds = (allCourseExercises || []).map(e => e.id);
+
+  // 4. Fetch student's progress for all lessons and exercises
+  const { data: studentProgress, error: progressError } = await supabase
+    .from('student_progress')
+    .select('lesson_id, exercise_id, completed, score')
+    .eq('user_id', userId);
+
+  if (progressError) {
+    console.error("Error fetching student progress:", progressError);
+    return;
+  }
+  console.log(`Student progress entries:`, studentProgress?.length);
+
+  const completedLessons = new Set(studentProgress?.filter(p => p.lesson_id && p.completed).map(p => p.lesson_id));
+  const completedExercises = new Set(studentProgress?.filter(p => p.exercise_id && p.completed).map(p => p.exercise_id));
+  const exerciseScores = new Map<string, number>(studentProgress?.filter(p => p.exercise_id && p.score !== null).map(p => [p.exercise_id!, p.score!]) || []);
+
+  // Check if all lessons in all modules are completed
+  const allLessonsCompleted = lessonIds.every(lessonId => completedLessons.has(lessonId));
+  console.log(`All lessons completed in course: ${allLessonsCompleted}`);
+
+  // Check if all exercises in all lessons are completed
+  const allExercisesCompleted = exerciseIds.every(exerciseId => completedExercises.has(exerciseId));
+  console.log(`All exercises completed in course: ${allExercisesCompleted}`);
+
+  if (!allLessonsCompleted || !allExercisesCompleted) {
+    console.log(`Course ${courseId} not fully completed by user ${userId}. Returning early.`);
+    return; // Course is not fully completed
+  }
+
+  // 5. Course is completed, now check for an active course certificate template
+  const { data: template, error: templateError } = await supabase
+    .from('certificate_templates')
+    .select('*')
+    .eq('type', 'course')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (templateError) {
+    console.error("Error fetching certificate template:", templateError);
+    return;
+  }
+  if (!template) {
+    console.log("No active course certificate template found. Returning early.");
+    toast.error("Nenhum modelo de certificado de curso ativo encontrado.");
+    return;
+  }
+  console.log("Active certificate template found:", template.name);
+
+  // 6. Calculate average score for course
+  let totalScoreSum = 0;
+  let scoredExercisesCount = 0;
+
+  for (const exercise of allCourseExercises) {
+    if (exerciseScores.has(exercise.id)) {
+      totalScoreSum += exerciseScores.get(exercise.id)!;
+      scoredExercisesCount++;
+    }
+  }
+
+  const averageScore = scoredExercisesCount > 0 ? Math.round(totalScoreSum / scoredExercisesCount) : 0;
+  console.log(`Calculated average score: ${averageScore}%`);
+
+  // 7. Check if requirements are met
+  if (averageScore < (template.min_score || 0)) {
+    console.log(`Course completion score (${averageScore}%) is below required minimum (${template.min_score}%). Returning early.`);
+    toast.error(`Sua nota (${averageScore}%) é inferior à mínima exigida (${template.min_score}%) para o certificado.`);
+    return;
+  }
+  // Assuming 100% attendance if all lessons are completed.
+  if (template.min_attendance && (100 < template.min_attendance)) { 
+    console.log(`Course completion attendance (100%) is below required minimum (${template.min_attendance}%). Returning early.`);
+    toast.error(`Sua frequência (100%) é inferior à mínima exigida (${template.min_attendance}%) para o certificado.`);
+    return;
+  }
+  console.log("Score and attendance requirements met.");
+
+  // 8. Fetch student name and course name
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('user_id', userId)
+    .single();
+
+  if (profileError || !profileData) {
+    console.error("Error fetching student profile:", profileError);
+    return;
+  }
+  console.log("Student profile fetched:", profileData.full_name);
+
+  const { data: courseData, error: courseDataError } = await supabase
+    .from('courses')
+    .select('title')
+    .eq('id', courseId)
+    .single();
+
+  if (courseDataError || !courseData) {
+    console.error("Error fetching course data:", courseDataError);
+    return;
+  }
+  console.log("Course data fetched:", courseData.title);
+
+  // 9. Generate unique validation code
+  const { data: validationCode, error: codeError } = await supabase.rpc('generate_certificate_code');
+
+  if (codeError || !validationCode) {
+    console.error("Error generating validation code:", codeError);
+    toast.error("Erro ao gerar código de validação para o certificado.");
+    return;
+  }
+  console.log("Validation code generated:", validationCode);
+
+  // 10. Check if certificate already exists for this course and user
+  const { data: existingCertificate, error: existingCertError } = await supabase
+    .from('certificates')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('course_id', courseId)
+    .maybeSingle();
+
+  if (existingCertError) {
+    console.error("Error checking for existing certificate:", existingCertError);
+    return;
+  }
+
+  if (existingCertificate) {
+    console.log(`Certificate for course ${courseId} already issued to user ${userId}. Returning early.`);
+    toast.info(`Você já possui o certificado para o curso "${courseData.title}".`);
+    return; // Certificate already issued
+  }
+  console.log("No existing certificate found. Proceeding to insert.");
+
+  // 11. Insert new certificate
+  const { error: insertCertError } = await supabase.from('certificates').insert({
+    user_id: userId,
+    course_id: courseId,
+    course_name: courseData.title,
+    student_name: profileData.full_name,
+    validation_code: validationCode,
+    issued_at: new Date().toISOString(),
+    template_id: template.id,
+    hours_load: template.hours_load,
+    score: averageScore,
+    // Gerar URL público para o certificado
+    pdf_url: `https://mohjrvrknrdrisppfrjq.supabase.co/functions/v1/generate-certificate-pdf?certificate_id=PLACEHOLDER_ID`, // Será atualizado após inserção
+  });
+
+  if (insertCertError) {
+    console.error("Error inserting new certificate:", insertCertError);
+    toast.error("Erro ao emitir certificado do curso.");
+    return;
+  }
+
+  // 12. Atualizar o certificado com o ID correto
+  if (insertCertError) {
+    console.error("Error inserting certificate, cannot update PDF URL");
+    return;
+  }
+
+  // Obter o ID do certificado recém-criado
+  const { data: newCertificate } = await supabase
+    .from('certificates')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('course_id', courseId)
+    .eq('validation_code', validationCode)
+    .single();
+
+  if (newCertificate) {
+    const pdfUrl = `https://mohjrvrknrdrisppfrjq.supabase.co/functions/v1/generate-certificate-pdf?certificate_id=${newCertificate.id}`;
+    
+    await supabase
+      .from('certificates')
+      .update({ pdf_url: pdfUrl })
+      .eq('id', newCertificate.id);
+  }
+
+  toast.success(`🎉 Certificado do curso "${courseData.title}" emitido!`);
+  console.log(`Certificate issued for course ${courseData.title} to user ${profileData.full_name}.`);
+  console.log("--- checkAndIssueCourseCertificate finished ---");
 }
