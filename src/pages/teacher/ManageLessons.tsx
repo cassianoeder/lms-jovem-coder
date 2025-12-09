@@ -163,7 +163,6 @@ const ManageLessons = () => {
     setDuration(lesson.duration_minutes || 0);
     setXpReward(lesson.xp_reward || 10);
     setModuleId(lesson.module_id || "");
-    setCourseId(lesson.course_id); // Set courseId when editing
     setDialogOpen(true);
   };
 
@@ -205,14 +204,14 @@ const ManageLessons = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"> {/* Adjusted for responsiveness */}
+        <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Aulas</h1>
             <p className="text-muted-foreground">{lessons.length} aulas cadastradas</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:opacity-90 mt-4 sm:mt-0"> {/* Added margin for mobile */}
+              <Button className="bg-gradient-primary hover:opacity-90">
                 <Plus className="w-4 h-4 mr-2" />Nova Aula
               </Button>
             </DialogTrigger>

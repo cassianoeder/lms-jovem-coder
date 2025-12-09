@@ -209,7 +209,7 @@ const ManageCourses = () => {
             {courses.map((course) => (
               <Card key={course.id} className="glass border-border/50 hover:border-primary/30 transition-colors">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start gap-4 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
+                  <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center text-3xl shrink-0">
                       {course.image_url?.startsWith('http') ? (
                         <img src={course.image_url} alt={course.title} className="w-full h-full object-cover rounded-xl" />
@@ -226,7 +226,7 @@ const ManageCourses = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 mb-4 flex-wrap"> {/* Adjusted for responsiveness */}
+                  <div className="flex items-center gap-2 mb-4">
                     <Badge variant="secondary" className="bg-accent/10 text-accent">
                       <Layers className="w-3 h-3 mr-1" />
                       {moduleCounts[course.id] || 0} módulos
@@ -235,7 +235,7 @@ const ManageCourses = () => {
                       Ordem: {course.order_index}
                     </Badge>
                   </div>
-                  <div className="flex gap-2 flex-wrap"> {/* Adjusted for responsiveness */}
+                  <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => handleEdit(course)}>
                       <Pencil className="w-4 h-4 mr-1" />Editar
                     </Button>

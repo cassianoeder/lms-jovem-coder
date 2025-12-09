@@ -83,7 +83,7 @@ const ExerciseView = () => {
           : null
       };
       setExercise(parsed as Exercise);
-      setUserCode(parsed.starter_code || ""); // Use parsed starter_code
+      setUserCode(exerciseData.starter_code || "");
 
       // Check if already completed
       const { data: progressData } = await supabase
@@ -256,7 +256,7 @@ const ExerciseView = () => {
 
   if (!exercise) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4"> {/* Added padding for mobile */}
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="glass border-border/50 max-w-md">
           <CardContent className="py-12 text-center">
             <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -308,7 +308,7 @@ const ExerciseView = () => {
     
     if (questions.length === 0) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4"> {/* Added padding for mobile */}
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <Card className="glass border-border/50 max-w-md">
             <CardContent className="py-12 text-center">
               <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -383,9 +383,9 @@ const ExerciseView = () => {
                 })}
               </RadioGroup>
 
-              <div className="mt-6 flex gap-3 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
+              <div className="mt-6 flex gap-3">
                 {currentQuestionIndex > 0 && (
-                  <Button variant="outline" onClick={handlePrevQuestion} className="w-full sm:w-auto"> {/* Adjusted width for mobile */}
+                  <Button variant="outline" onClick={handlePrevQuestion}>
                     <ArrowLeft className="w-4 h-4 mr-1" />
                     Anterior
                   </Button>
@@ -481,8 +481,8 @@ const ExerciseView = () => {
                 </div>
               )}
 
-              <div className="flex gap-3 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
-                <Button variant="outline" onClick={handleRunCode} className="w-full sm:w-auto"> {/* Adjusted width for mobile */}
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={handleRunCode}>
                   <Play className="w-4 h-4 mr-2" />
                   Executar
                 </Button>

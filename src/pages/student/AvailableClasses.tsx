@@ -129,7 +129,7 @@ const AvailableClasses = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <div className="relative max-w-md w-full"> {/* Added w-full for mobile */}
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar turmas..."
@@ -154,7 +154,7 @@ const AvailableClasses = () => {
               return (
                 <Card key={cls.id} className="glass border-border/50 hover:border-primary/30 transition-colors">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap"> {/* Adjusted for responsiveness */}
+                    <div className="flex items-center gap-2 mb-2">
                       {cls.is_public ? (
                         <Globe className="w-4 h-4 text-primary" />
                       ) : (

@@ -75,19 +75,19 @@ const Setup = () => {
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-foreground">Passo 1: Criar Projeto no Supabase</h3>
-              <p className="text-muted-foreground text-sm"> {/* Adjusted text size for mobile */}
+              <p className="text-muted-foreground">
                 Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Dashboard do Supabase</a> e crie um novo projeto.
               </p>
             </div>
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-foreground">Passo 2: Configurar Variáveis de Ambiente</h3>
-              <p className="text-muted-foreground text-sm"> {/* Adjusted text size for mobile */}
+              <p className="text-muted-foreground">
                 Após criar seu projeto, obtenha a URL e a Chave Anônima e preencha os campos na próxima etapa.
               </p>
             </div>
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-foreground">Passo 3: Importar Esquema do Banco de Dados</h3>
-              <p className="text-muted-foreground text-sm"> {/* Adjusted text size for mobile */}
+              <p className="text-muted-foreground">
                 Você precisará importar o esquema do banco de dados usando o script que preparamos.
               </p>
               <Button 
@@ -148,8 +148,8 @@ const Setup = () => {
                 onChange={(e) => setFormData({ ...formData, supabaseKey: e.target.value })}
               />
             </div>
-            <div className="flex gap-2 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
-              <Button variant="outline" onClick={() => setStep("instructions")} className="w-full sm:w-auto"> {/* Adjusted width for mobile */}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep("instructions")}>
                 Voltar
               </Button>
               <Button onClick={handleSaveEnv} className="flex-1 bg-gradient-primary">
@@ -179,7 +179,7 @@ const Setup = () => {
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-foreground">Instruções</h3>
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground text-sm"> {/* Adjusted text size for mobile */}
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                 <li>
                   Acesse o <strong>SQL Editor</strong> no Dashboard do seu projeto Supabase
                 </li>
@@ -198,12 +198,12 @@ const Setup = () => {
               </ol>
             </div>
             <Alert>
-              <AlertDescription className="text-sm"> {/* Adjusted text size for mobile */}
+              <AlertDescription>
                 <strong>Importante:</strong> Aguarde a execução completa do script antes de continuar. Isso pode levar alguns segundos.
               </AlertDescription>
             </Alert>
-            <div className="flex gap-2 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
-              <Button variant="outline" onClick={() => setStep("env")} className="w-full sm:w-auto"> {/* Adjusted width for mobile */}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep("env")}>
                 Voltar
               </Button>
               <Button onClick={handleFinishSetup} disabled={loading} className="flex-1 bg-gradient-primary">

@@ -111,13 +111,13 @@ const CoordinatorDashboard = () => {
             <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
               <Code2 className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold text-foreground hidden sm:inline">CodeQuest</span> {/* Hidden on small screens */}
+            <span className="font-display text-lg font-bold text-foreground">CodeQuest</span>
             <Badge variant="secondary" className="ml-2 bg-level/10 text-level">Coordenação</Badge>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for mobile */}
+          <div className="flex items-center gap-4">
             <Select defaultValue="month">
-              <SelectTrigger className="w-[120px] sm:w-[140px] h-8 sm:h-9"> {/* Adjusted width and height for mobile */}
+              <SelectTrigger className="w-[140px]">
                 <Calendar className="w-4 h-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -129,12 +129,12 @@ const CoordinatorDashboard = () => {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" size="icon" className="w-8 h-8 sm:w-9 sm:h-9"> {/* Adjusted button size for mobile */}
+            <Button variant="outline" size="icon">
               <Download className="w-4 h-4 text-foreground" />
             </Button>
 
-            <Button variant="outline" size="icon" onClick={handleSignOut} className="w-8 h-8 sm:w-9 sm:h-9"> {/* Adjusted button size for mobile */}
-              <LogOut className="w-4 h-4 text-foreground" />
+            <Button variant="outline" size="icon" onClick={handleSignOut}>
+              <LogOut className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>
@@ -144,17 +144,17 @@ const CoordinatorDashboard = () => {
         {/* Welcome Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2"> {/* Adjusted text size for mobile */}
+            <h1 className="font-display text-3xl font-bold text-foreground mb-2">
               Olá, {profile?.full_name?.split(" ")[0] || "Coordenador"}! 📊
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Visão geral do desempenho e métricas da plataforma.</p> {/* Adjusted text size for mobile */}
+            <p className="text-muted-foreground">Visão geral do desempenho e métricas da plataforma.</p>
           </div>
-          <div className="flex gap-2 mt-4 sm:mt-0 flex-wrap justify-center"> {/* Adjusted for responsiveness */}
-            <Button variant="outline" className="w-full sm:w-auto"> {/* Adjusted width for mobile */}
+          <div className="flex gap-2 mt-4 sm:mt-0">
+            <Button variant="outline">
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button className="bg-gradient-primary hover:opacity-90 w-full sm:w-auto"> {/* Adjusted width for mobile */}
+            <Button className="bg-gradient-primary hover:opacity-90">
               <Download className="w-4 h-4 mr-2" />
               Exportar Relatório
             </Button>
@@ -165,33 +165,33 @@ const CoordinatorDashboard = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="glass border-border/50">
             <CardContent className="p-4 text-center">
-              <Users className="w-7 h-7 sm:w-8 sm:h-8 text-primary mx-auto mb-2" /> {/* Adjusted icon size for mobile */}
-              <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{totalStudents}</p> {/* Adjusted text size for mobile */}
-              <p className="text-xs sm:text-sm text-muted-foreground">Alunos</p> {/* Adjusted text size for mobile */}
+              <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{totalStudents}</p>
+              <p className="text-sm text-muted-foreground">Alunos</p>
             </CardContent>
           </Card>
 
           <Card className="glass border-border/50">
             <CardContent className="p-4 text-center">
-              <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-accent mx-auto mb-2" /> {/* Adjusted icon size for mobile */}
-              <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{totalTeachers}</p> {/* Adjusted text size for mobile */}
-              <p className="text-xs sm:text-sm text-muted-foreground">Professores</p> {/* Adjusted text size for mobile */}
+              <BookOpen className="w-8 h-8 text-accent mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{totalTeachers}</p>
+              <p className="text-sm text-muted-foreground">Professores</p>
             </CardContent>
           </Card>
 
           <Card className="glass border-border/50">
             <CardContent className="p-4 text-center">
-              <BarChart3 className="w-7 h-7 sm:w-8 sm:h-8 text-info mx-auto mb-2" /> {/* Adjusted icon size for mobile */}
-              <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{totalClasses}</p> {/* Adjusted text size for mobile */}
-              <p className="text-xs sm:text-sm text-muted-foreground">Turmas</p> {/* Adjusted text size for mobile */}
+              <BarChart3 className="w-8 h-8 text-info mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{totalClasses}</p>
+              <p className="text-sm text-muted-foreground">Turmas</p>
             </CardContent>
           </Card>
 
           <Card className="glass border-border/50">
             <CardContent className="p-4 text-center">
-              <TrendingUp className="w-7 h-7 sm:w-8 sm:h-8 text-success mx-auto mb-2" /> {/* Adjusted icon size for mobile */}
-              <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{courses.length}</p> {/* Adjusted text size for mobile */}
-              <p className="text-xs sm:text-sm text-muted-foreground">Cursos</p> {/* Adjusted text size for mobile */}
+              <TrendingUp className="w-8 h-8 text-success mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{courses.length}</p>
+              <p className="text-sm text-muted-foreground">Cursos</p>
             </CardContent>
           </Card>
         </div>
@@ -199,8 +199,8 @@ const CoordinatorDashboard = () => {
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
           {/* Courses Overview */}
           <Card className="glass border-border/50 lg:col-span-2">
-            <CardHeader className="flex flex-col sm:flex-row items-center justify-between"> {/* Adjusted for responsiveness */}
-              <CardTitle className="font-display flex items-center gap-2 text-lg sm:text-xl mb-2 sm:mb-0"> {/* Adjusted text size for mobile */}
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="font-display flex items-center gap-2">
                 <PieChart className="w-5 h-5 text-primary" />
                 Cursos Disponíveis
               </CardTitle>
@@ -214,7 +214,7 @@ const CoordinatorDashboard = () => {
                 {courses.map((course) => (
                   <div key={course.id} className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/50">
                     <div className="flex-1">
-                      <p className="font-medium text-sm sm:text-base text-foreground">{course.title}</p> {/* Adjusted text size for mobile */}
+                      <p className="font-medium text-foreground">{course.title}</p>
                     </div>
                     <Badge variant="secondary" className="bg-primary/10 text-primary">
                       Ativo
@@ -222,7 +222,7 @@ const CoordinatorDashboard = () => {
                   </div>
                 ))}
                 {courses.length === 0 && (
-                  <p className="text-muted-foreground text-center py-4 text-sm sm:text-base">Nenhum curso cadastrado</p> {/* Adjusted text size for mobile */}
+                  <p className="text-muted-foreground text-center py-4">Nenhum curso cadastrado</p>
                 )}
               </div>
             </CardContent>
@@ -231,7 +231,7 @@ const CoordinatorDashboard = () => {
           {/* Top Students */}
           <Card className="glass border-border/50">
             <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2 text-lg sm:text-xl"> {/* Adjusted text size for mobile */}
+              <CardTitle className="font-display flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-xp" />
                 Top Alunos
               </CardTitle>
@@ -243,7 +243,7 @@ const CoordinatorDashboard = () => {
                   className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50"
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${ /* Adjusted text size for mobile */
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
                       index === 0
                         ? "bg-badge-gold"
                         : index === 1
@@ -256,19 +256,19 @@ const CoordinatorDashboard = () => {
                     {index + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm sm:text-base text-foreground">Aluno #{index + 1}</p> {/* Adjusted text size for mobile */}
+                    <p className="font-medium text-foreground">Aluno #{index + 1}</p>
                     <p className="text-xs text-muted-foreground">
                       Nível {student.level}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-xp/10 text-xp text-sm"> {/* Adjusted text size for mobile */}
+                  <Badge variant="secondary" className="bg-xp/10 text-xp">
                     {student.total_xp} XP
                   </Badge>
                 </div>
               )) : (
-                <p className="text-muted-foreground text-center py-4 text-sm sm:text-base">Nenhum aluno cadastrado</p> {/* Adjusted text size for mobile */}
+                <p className="text-muted-foreground text-center py-4">Nenhum aluno cadastrado</p>
               )}
-              <Button variant="ghost" className="w-full mt-2 text-sm sm:text-base"> {/* Adjusted text size for mobile */}
+              <Button variant="ghost" className="w-full mt-2">
                 Ver ranking completo
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -277,44 +277,44 @@ const CoordinatorDashboard = () => {
         </div>
 
         {/* Quick Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"> {/* Adjusted grid for responsiveness */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="glass border-border/50">
-            <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
+            <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-success/10 flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-success" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-success" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Sistema</p>
-                  <p className="font-display text-lg sm:text-xl font-semibold text-success">Operacional</p> {/* Adjusted text size for mobile */}
+                  <p className="font-display text-lg font-semibold text-success">Operacional</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="glass border-border/50">
-            <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
+            <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-info/10 flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-info" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-info/10 flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-info" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Engajamento</p>
-                  <p className="font-display text-lg sm:text-xl font-semibold text-foreground">--</p> {/* Adjusted text size for mobile */}
+                  <p className="font-display text-lg font-semibold text-foreground">--</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="glass border-border/50">
-            <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
+            <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-warning/10 flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-warning" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-warning" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Alertas</p>
-                  <p className="font-display text-lg sm:text-xl font-semibold text-foreground">0</p> {/* Adjusted text size for mobile */}
+                  <p className="font-display text-lg font-semibold text-foreground">0</p>
                 </div>
               </div>
             </CardContent>

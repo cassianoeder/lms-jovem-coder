@@ -116,35 +116,35 @@ const StudentDashboard = () => {
             <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
               <Code2 className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold text-foreground hidden sm:inline">JovemCoder</span> {/* Hidden on small screens */}
+            <span className="font-display text-lg font-bold text-foreground">JovemCoder</span>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for mobile */}
+          <div className="flex items-center gap-4">
             {/* XP Display */}
-            <div className="flex items-center gap-1 bg-xp/10 px-2 py-1 rounded-full sm:px-3 sm:py-1.5"> {/* Adjusted padding for mobile */}
-              <Zap className="w-3 h-3 text-xp sm:w-4 sm:h-4" /> {/* Adjusted icon size for mobile */}
-              <span className="text-xs font-medium text-xp sm:text-sm">{currentXp} XP</span> {/* Adjusted text size for mobile */}
+            <div className="hidden sm:flex items-center gap-2 bg-xp/10 px-3 py-1.5 rounded-full">
+              <Zap className="w-4 h-4 text-xp" />
+              <span className="text-sm font-medium text-xp">{currentXp} XP</span>
             </div>
 
             {/* Streak Display */}
-            <div className="flex items-center gap-1 bg-streak/10 px-2 py-1 rounded-full sm:px-3 sm:py-1.5"> {/* Adjusted padding for mobile */}
-              <Flame className="w-3 h-3 text-streak sm:w-4 sm:h-4" /> {/* Adjusted icon size for mobile */}
-              <span className="text-xs font-medium text-streak sm:text-sm">{streakData?.current_streak || 0} dias</span> {/* Adjusted text size for mobile */}
+            <div className="hidden sm:flex items-center gap-2 bg-streak/10 px-3 py-1.5 rounded-full">
+              <Flame className="w-4 h-4 text-streak" />
+              <span className="text-sm font-medium text-streak">{streakData?.current_streak || 0} dias</span>
             </div>
 
             {/* Level */}
-            <div className="flex items-center gap-1 bg-level/10 px-2 py-1 rounded-full sm:px-3 sm:py-1.5"> {/* Adjusted padding for mobile */}
-              <Star className="w-3 h-3 text-level sm:w-4 sm:h-4" /> {/* Adjusted icon size for mobile */}
-              <span className="text-xs font-medium text-level sm:text-sm">Nível {xpData?.level || 1}</span> {/* Adjusted text size for mobile */}
+            <div className="flex items-center gap-2 bg-level/10 px-3 py-1.5 rounded-full">
+              <Star className="w-4 h-4 text-level" />
+              <span className="text-sm font-medium text-level">Nível {xpData?.level || 1}</span>
             </div>
 
             <Link to="/">
-              <Button variant="outline" size="icon" title="Página inicial" className="w-8 h-8 sm:w-9 sm:h-9"> {/* Adjusted button size for mobile */}
-                <Home className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" /> {/* Adjusted icon size for mobile */}
+              <Button variant="outline" size="icon" title="Página inicial">
+                <Home className="w-5 h-5 text-foreground" />
               </Button>
             </Link>
-            <Button variant="outline" size="icon" onClick={handleSignOut} title="Sair" className="w-8 h-8 sm:w-9 sm:h-9"> {/* Adjusted button size for mobile */}
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" /> {/* Adjusted icon size for mobile */}
+            <Button variant="outline" size="icon" onClick={handleSignOut} title="Sair">
+              <LogOut className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>
@@ -153,10 +153,10 @@ const StudentDashboard = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2"> {/* Adjusted text size for mobile */}
+          <h1 className="font-display text-3xl font-bold text-foreground mb-2">
             Olá, {profile?.full_name?.split(" ")[0] || "Estudante"}! 👋
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Continue sua jornada e mantenha seu streak!</p> {/* Adjusted text size for mobile */}
+          <p className="text-muted-foreground">Continue sua jornada e mantenha seu streak!</p>
         </div>
 
         {/* Stats Grid */}
@@ -164,12 +164,12 @@ const StudentDashboard = () => {
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-xp flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-xp flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">XP Total</p> {/* Adjusted text size for mobile */}
-                  <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{currentXp}</p> {/* Adjusted text size for mobile */}
+                  <p className="text-sm text-muted-foreground">XP Total</p>
+                  <p className="font-display text-2xl font-bold text-foreground">{currentXp}</p>
                 </div>
               </div>
             </CardContent>
@@ -178,12 +178,12 @@ const StudentDashboard = () => {
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-streak flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-white" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-streak flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Streak</p> {/* Adjusted text size for mobile */}
-                  <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{streakData?.current_streak || 0} dias</p> {/* Adjusted text size for mobile */}
+                  <p className="text-sm text-muted-foreground">Streak</p>
+                  <p className="font-display text-2xl font-bold text-foreground">{streakData?.current_streak || 0} dias</p>
                 </div>
               </div>
             </CardContent>
@@ -192,12 +192,12 @@ const StudentDashboard = () => {
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-accent flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Conquistas</p> {/* Adjusted text size for mobile */}
-                  <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{badges.length}</p> {/* Adjusted text size for mobile */}
+                  <p className="text-sm text-muted-foreground">Conquistas</p>
+                  <p className="font-display text-2xl font-bold text-foreground">{badges.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -206,12 +206,12 @@ const StudentDashboard = () => {
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-primary flex items-center justify-center"> {/* Adjusted size for mobile */}
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" /> {/* Adjusted icon size for mobile */}
+                <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Melhor Streak</p> {/* Adjusted text size for mobile */}
-                  <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{streakData?.longest_streak || 0}</p> {/* Adjusted text size for mobile */}
+                  <p className="text-sm text-muted-foreground">Melhor Streak</p>
+                  <p className="font-display text-2xl font-bold text-foreground">{streakData?.longest_streak || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -220,22 +220,22 @@ const StudentDashboard = () => {
 
         {/* Level Progress */}
         <Card className="glass border-border/50 mb-8">
-          <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
-            <div className="flex items-center justify-between mb-3 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
-              <div className="flex items-center gap-3 mb-3 sm:mb-0"> {/* Added margin for mobile */}
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-accent flex items-center justify-center glow-accent"> {/* Adjusted size for mobile */}
-                  <span className="font-display text-lg sm:text-xl font-bold text-white">{xpData?.level || 1}</span> {/* Adjusted text size for mobile */}
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full bg-gradient-accent flex items-center justify-center glow-accent">
+                  <span className="font-display text-xl font-bold text-white">{xpData?.level || 1}</span>
                 </div>
-                <div className="text-center sm:text-left"> {/* Adjusted text alignment for mobile */}
-                  <p className="font-display text-base sm:text-lg font-semibold text-foreground">Nível {xpData?.level || 1}</p> {/* Adjusted text size for mobile */}
-                  <p className="text-xs sm:text-sm text-muted-foreground"> {/* Adjusted text size for mobile */}
+                <div>
+                  <p className="font-display text-lg font-semibold text-foreground">Nível {xpData?.level || 1}</p>
+                  <p className="text-sm text-muted-foreground">
                     {(xpData?.level || 1) < 5 ? "Iniciante" : (xpData?.level || 1) < 10 ? "Intermediário" : "Avançado"}
                   </p>
                 </div>
               </div>
-              <div className="text-center sm:text-right"> {/* Adjusted text alignment for mobile */}
-                <p className="text-xs sm:text-sm text-muted-foreground">Próximo nível</p> {/* Adjusted text size for mobile */}
-                <p className="font-display text-base sm:text-lg font-semibold text-foreground"> {/* Adjusted text size for mobile */}
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Próximo nível</p>
+                <p className="font-display text-lg font-semibold text-foreground">
                   {500 - (currentXp % 500)} XP restantes
                 </p>
               </div>
@@ -248,7 +248,7 @@ const StudentDashboard = () => {
           {/* Recent Badges now takes full width if no missions */}
           <Card className="glass border-border/50 lg:col-span-1">
             <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2 text-lg sm:text-xl"> {/* Adjusted text size for mobile */}
+              <CardTitle className="font-display flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-badge-gold" />
                 Conquistas Recentes
               </CardTitle>
@@ -259,11 +259,11 @@ const StudentDashboard = () => {
                   key={badge.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50"
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted flex items-center justify-center text-xl sm:text-2xl"> {/* Adjusted size for mobile */}
+                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
                     {badge.badges?.icon || "🏆"}
                   </div>
                   <div>
-                    <p className="font-medium text-sm sm:text-base text-foreground">{badge.badges?.name}</p> {/* Adjusted text size for mobile */}
+                    <p className="font-medium text-foreground">{badge.badges?.name}</p>
                     <Badge
                       variant="secondary"
                       className={`text-xs ${
@@ -283,9 +283,9 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               )) : (
-                <p className="text-muted-foreground text-center py-4 text-sm sm:text-base">Complete exercícios para ganhar badges!</p> {/* Adjusted text size for mobile */}
+                <p className="text-muted-foreground text-center py-4">Complete exercícios para ganhar badges!</p>
               )}
-              <Button variant="ghost" className="w-full mt-2 text-sm sm:text-base"> {/* Adjusted text size for mobile */}
+              <Button variant="ghost" className="w-full mt-2">
                 Ver todas conquistas
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -295,7 +295,7 @@ const StudentDashboard = () => {
           {learningProgress.length > 0 && (
             <Card className="glass border-border/50 lg:col-span-2"> {/* Adjusted col-span */}
               <CardHeader>
-                <CardTitle className="font-display flex items-center gap-2 text-lg sm:text-xl"> {/* Adjusted text size for mobile */}
+                <CardTitle className="font-display flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-primary" />
                   Continue Aprendendo
                 </CardTitle>
@@ -308,7 +308,7 @@ const StudentDashboard = () => {
                       className="p-4 rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted flex items-center justify-center text-xl sm:text-2xl"> {/* Adjusted size for mobile */}
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
                           {item.courseImageUrl?.startsWith('http') ? (
                             <img src={item.courseImageUrl} alt={item.courseTitle} className="w-full h-full object-cover rounded-xl" />
                           ) : (
@@ -316,16 +316,16 @@ const StudentDashboard = () => {
                           )}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-sm sm:text-base text-foreground">{item.courseTitle}</p> {/* Adjusted text size for mobile */}
+                          <p className="font-medium text-foreground">{item.courseTitle}</p>
                           {item.nextLesson ? (
-                            <p className="text-xs sm:text-sm text-muted-foreground">Próxima: {item.nextLesson.title}</p> {/* Adjusted text size for mobile */}
+                            <p className="text-sm text-muted-foreground">Próxima: {item.nextLesson.title}</p>
                           ) : (
-                            <p className="text-xs sm:text-sm text-muted-foreground">Todas as aulas concluídas!</p> {/* Adjusted text size for mobile */}
+                            <p className="text-sm text-muted-foreground">Todas as aulas concluídas!</p>
                           )}
                         </div>
                       </div>
                       <div className="mb-4">
-                        <div className="flex justify-between text-xs sm:text-sm mb-2"> {/* Adjusted text size for mobile */}
+                        <div className="flex justify-between text-sm mb-2">
                           <span className="text-muted-foreground">Progresso do Curso</span>
                           <span className="font-medium text-foreground">{item.progressPercentage}%</span>
                         </div>
@@ -333,13 +333,13 @@ const StudentDashboard = () => {
                       </div>
                       {item.nextLesson ? (
                         <Link to={`/student/lesson/${item.nextLesson.id}`}>
-                          <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all text-sm sm:text-base"> {/* Adjusted text size for mobile */}
+                          <Button className="w-full mt-4 bg-gradient-primary hover:opacity-90 group-hover:glow-primary transition-all">
                             <Play className="w-4 h-4 mr-2" />
                             Continuar Aula
                           </Button>
                         </Link>
                       ) : (
-                        <Button disabled className="w-full mt-4 text-sm sm:text-base" variant="outline"> {/* Adjusted text size for mobile */}
+                        <Button disabled className="w-full mt-4" variant="outline">
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Curso Concluído
                         </Button>
@@ -356,13 +356,13 @@ const StudentDashboard = () => {
         <div className="grid sm:grid-cols-3 gap-4 mt-6">
           <Link to="/student/classes">
             <Card className="glass border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
-              <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
+              <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-primary flex items-center justify-center"> {/* Adjusted size for mobile */}
-                    <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> {/* Adjusted icon size for mobile */}
+                  <div className="w-14 h-14 rounded-xl bg-gradient-primary flex items-center justify-center">
+                    <Users className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <p className="font-display text-lg sm:text-xl font-bold text-foreground">Explorar Turmas</p> {/* Adjusted text size for mobile */}
+                    <p className="font-display text-lg font-bold text-foreground">Explorar Turmas</p>
                     <p className="text-sm text-muted-foreground">Encontre novas turmas</p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -373,13 +373,13 @@ const StudentDashboard = () => {
           
           <Link to="/student/my-classes">
             <Card className="glass border-border/50 hover:border-accent/50 transition-all cursor-pointer group">
-              <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
+              <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-accent flex items-center justify-center"> {/* Adjusted size for mobile */}
-                    <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> {/* Adjusted icon size for mobile */}
+                  <div className="w-14 h-14 rounded-xl bg-gradient-accent flex items-center justify-center">
+                    <BookOpen className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <p className="font-display text-lg sm:text-xl font-bold text-foreground">Minhas Turmas</p> {/* Adjusted text size for mobile */}
+                    <p className="font-display text-lg font-bold text-foreground">Minhas Turmas</p>
                     <p className="text-sm text-muted-foreground">Continue estudando</p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -390,13 +390,13 @@ const StudentDashboard = () => {
           
           <Link to="/student/certificates">
             <Card className="glass border-border/50 hover:border-xp/50 transition-all cursor-pointer group">
-              <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
+              <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-xp flex items-center justify-center"> {/* Adjusted size for mobile */}
-                    <Award className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> {/* Adjusted icon size for mobile */}
+                  <div className="w-14 h-14 rounded-xl bg-gradient-xp flex items-center justify-center">
+                    <Award className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <p className="font-display text-lg sm:text-xl font-bold text-foreground">Certificados</p> {/* Adjusted text size for mobile */}
+                    <p className="font-display text-lg font-bold text-foreground">Certificados</p>
                     <p className="text-sm text-muted-foreground">Suas conquistas</p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />

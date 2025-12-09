@@ -278,14 +278,14 @@ const ManageExercises = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"> {/* Adjusted for responsiveness */}
+        <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Exercícios</h1>
             <p className="text-muted-foreground">{exercises.length} exercícios cadastrados</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-accent hover:opacity-90 mt-4 sm:mt-0"> {/* Added margin for mobile */}
+              <Button className="bg-gradient-accent hover:opacity-90">
                 <Plus className="w-4 h-4 mr-2" />Novo Exercício
               </Button>
             </DialogTrigger>
@@ -381,7 +381,7 @@ const ManageExercises = () => {
 
                 {type === 'multiple_choice' && (
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center flex-wrap gap-2"> {/* Adjusted for responsiveness */}
+                    <div className="flex justify-between items-center">
                       <Label>Questões</Label>
                       <Button type="button" variant="outline" onClick={addQuestion}>
                         <Plus className="w-4 h-4 mr-1" />Adicionar Questão
