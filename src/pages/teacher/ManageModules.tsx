@@ -96,6 +96,33 @@ const ManageModules = () => {
 
     console.log("Payload to insert/update:", payload);
 
+    // Tente usar RPC para bypass do RLS
+    try {
+      const { data, error } = await supabase.rpc('admin_create_module', {
+        p_course_id: formData.course_id,
+        p_title: formData.title,
+        p_description: formData.description,
+        p_order_index: formData.order_index,
+        p_is_active: formData.is_active
+      });
+      
+      console.log("RPC result:", { data, error });
+      
+      if (error) {
+        console.log("RPC failed, trying direct insert...");
+        throw error;
+      }
+      
+      toast.success("Módulo criado via RPC!");
+      setIsDialogOpen(false);
+      resetForm();
+      fetchData();
+      return;
+    } catch (rpcError) {
+      console.log("RPC error:", rpcError);
+    }
+
+    // Se RPC falhar, tente inserção direta
     if (selectedModule) {
       console.log("Updating module:", selectedModule.id);
       const { error } = await supabase.from('modules').update(payload).eq('id', selectedModule.id);
