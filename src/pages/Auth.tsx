@@ -1,327 +1,139 @@
-import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code2, Mail, Lock, User, Eye, EyeOff, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, EyeOff, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
-const Auth = () => {
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("mode") === "register" ? "register" : "login";
+function AuthPage() {
   const navigate = useNavigate();
-  const { user, role, signIn, signUp, loading: authLoading } = useAuth();
+  const { user, role, signIn, signUp, isLoading: authLoading } = useAuth(); // Corrigido: loading para isLoading
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-  
-  // Check if Supabase is configured
-  const [supabaseConfigured, setSupabaseConfigured] = useState(true);
+  const [loading, setLoading] = useState(false); // Local loading state for form submission
 
-  // Login state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  // Register state
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-
-  useEffect(() => {
-    // Check if Supabase is properly configured
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      setSupabaseConfigured(false);
-      return;
-    }
-    
-    try {
-      new URL(supabaseUrl);
-    } catch (e) {
-      setSupabaseConfigured(false);
-    }
-  }, []);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user && role && !authLoading) {
-      const roleRoutes: Record<string, string> = {
-        student: '/student',
-        teacher: '/teacher',
-        coordinator: '/coordinator',
-        admin: '/teacher',
-      };
-      navigate(roleRoutes[role] || '/student');
-    }
-  }, [user, role, authLoading, navigate]);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!supabaseConfigured) {
-      toast({
-        title: "Sistema não configurado",
-        description: "O sistema ainda não foi configurado com o Supabase. Por favor, configure as variáveis de ambiente.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
-    
-    if (error) {
-      toast({
-        title: "Erro ao entrar",
-        description: error.message === "Invalid login credentials" 
-          ? "Email ou senha incorretos" 
-          : error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Bem-vindo de volta!",
-        description: "Login realizado com sucesso.",
-      });
-    }
-    setIsLoading(false);
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!supabaseConfigured) {
-      toast({
-        title: "Sistema não configurado",
-        description: "O sistema ainda não foi configurado com o Supabase. Por favor, configure as variáveis de ambiente.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    // Only students can self-register
-    const { error } = await signUp(registerEmail, registerPassword, registerName, 'student');
-    
-    if (error) {
-      let errorMessage = error.message;
-      if (error.message.includes("already registered")) {
-        errorMessage = "Este email já está cadastrado. Tente fazer login.";
+    setLoading(true);
+    if (isLogin) {
+      const { error } = await signIn(email, password);
+      if (!error) {
+        navigate('/'); // Redireciona após login bem-sucedido
       }
-      toast({
-        title: "Erro ao criar conta",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } else {
-      toast({
-        title: "Conta criada!",
-        description: "Sua conta de aluno foi criada com sucesso.",
-      });
+      const { error } = await signUp(email, password, fullName, 'student'); // Default role 'student'
+      if (!error) {
+        setIsLogin(true); // Volta para a tela de login após o cadastro
+        setEmail('');
+        setPassword('');
+        setFullName('');
+      }
     }
-    setIsLoading(false);
+    setLoading(false);
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-hero dark flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  if (!supabaseConfigured) {
-    return (
-      <div className="min-h-screen bg-gradient-hero dark flex items-center justify-center p-4">
-        <Card className="w-full max-w-md glass border-border/50">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/20 flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8 text-destructive" />
-            </div>
-            <CardTitle className="text-2xl">Sistema Não Configurado</CardTitle>
-            <CardDescription>
-              O sistema ainda não foi configurado com o Supabase
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground text-center">
-              Para usar o sistema, você precisa configurar as variáveis de ambiente do Supabase.
-            </p>
-            <Link to="/setup">
-              <Button className="w-full bg-gradient-primary">
-                Configurar Agora
-              </Button>
-            </Link>
-            <p className="text-xs text-muted-foreground text-center">
-              Acesse o arquivo <code className="bg-muted px-1 rounded">.env</code> e adicione as variáveis:
-              <br />
-              <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (user) {
+    navigate('/'); // Redireciona se já estiver logado
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero dark flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
-            <Code2 className="w-7 h-7 text-primary-foreground" />
-          </div>
-          <span className="font-display text-2xl font-bold text-foreground">JovemCoder</span>
-        </Link>
-        <Card className="glass border-border/50">
-          <CardHeader className="text-center">
-            <CardTitle className="font-display text-2xl">Bem-vindo!</CardTitle>
-            <CardDescription>Entre ou crie sua conta para começar</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Entrar</TabsTrigger>
-                <TabsTrigger value="register">Cadastrar</TabsTrigger>
-              </TabsList>
-              
-              {/* Login Tab */}
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="login-email" 
-                        type="email" 
-                        placeholder="seu@email.com" 
-                        className="pl-10" 
-                        value={loginEmail} 
-                        onChange={(e) => setLoginEmail(e.target.value)} 
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="login-password" 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="••••••••" 
-                        className="pl-10 pr-10" 
-                        value={loginPassword} 
-                        onChange={(e) => setLoginPassword(e.target.value)} 
-                        required 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-primary hover:opacity-90" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Entrando..." : "Entrar"}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              {/* Register Tab - Only for Students */}
-              <TabsContent value="register">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4">
-                    <p className="text-sm text-primary">
-                      📚 Cadastro disponível apenas para alunos. Professores e coordenadores devem solicitar acesso ao administrador.
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-name">Nome completo</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="register-name" 
-                        type="text" 
-                        placeholder="Seu nome" 
-                        className="pl-10" 
-                        value={registerName} 
-                        onChange={(e) => setRegisterName(e.target.value)} 
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="register-email" 
-                        type="email" 
-                        placeholder="seu@email.com" 
-                        className="pl-10" 
-                        value={registerEmail} 
-                        onChange={(e) => setRegisterEmail(e.target.value)} 
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input 
-                        id="register-password" 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="Mínimo 6 caracteres" 
-                        className="pl-10 pr-10" 
-                        value={registerPassword} 
-                        onChange={(e) => setRegisterPassword(e.target.value)} 
-                        minLength={6} 
-                        required 
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-primary hover:opacity-90" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Criando conta..." : "Criar conta de Aluno"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Ao continuar, você concorda com nossos{" "}
-          <a href="#" className="text-primary hover:underline">Termos de Uso</a>
-          {" "}e{" "}
-          <a href="#" className="text-primary hover:underline">Política de Privacidade</a>
-        </p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background dark p-4">
+      <Card className="w-full max-w-md glass border-border/50">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-foreground text-center">
+            {isLogin ? 'Entrar' : 'Cadastrar'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nome Completo</Label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    className="pl-10"
+                    disabled={loading || authLoading}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="pl-10"
+                  disabled={loading || authLoading}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Sua senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="pl-10 pr-10"
+                  disabled={loading || authLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading || authLoading}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </Button>
+              </div>
+            </div>
+            <Button type="submit" className="w-full bg-gradient-primary" disabled={loading || authLoading}>
+              {loading || authLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                isLogin ? 'Entrar' : 'Cadastrar'
+              )}
+            </Button>
+          </form>
+          <Button
+            variant="link"
+            className="w-full mt-4 text-muted-foreground"
+            onClick={() => setIsLogin(!isLogin)}
+            disabled={loading || authLoading}
+          >
+            {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
-};
+}
 
-export default Auth;
+export default AuthPage;

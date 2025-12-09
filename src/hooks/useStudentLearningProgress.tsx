@@ -1,36 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Tables } from '@/integrations/supabase/types';
+import { useAuth } from './useAuth';
+import { toast } from 'sonner';
 
-type Lesson = Tables<'lessons'>;
-type Course = Tables<'courses'>;
-type StudentProgress = Tables<'student_progress'>;
-type Exercise = Tables<'exercises'>;
+// Define a interface completa do Course conforme esperado pelo tipo de destino no erro
+interface Course {
+  id: string;
+  title: string;
+  description: string | null; // Pode ser nulo
+  image_url: string | null; // Pode ser nulo
+  order_index: number;
+  created_at: string;
+}
 
-interface NextLearningItem {
-  courseId: string;
-  courseTitle: string;
-  courseImageUrl: string | null;
-  nextLesson: Lesson | null;
-  progressPercentage: number;
+interface Lesson {
+  id: string;
+  title: string;
+  course_id: string;
+  module_id: string | null;
+  completed: boolean;
+}
+
+interface Module {
+  id: string;
+  title: string;
+  course_id: string;
+  lessons: Lesson[];
+}
+
+interface StudentCourseProgress {
+  course: Course;
+  modules: Module[];
+  completedLessonsCount: number;
+  totalLessonsCount: number;
+  completionPercentage: number;
 }
 
 export const useStudentLearningProgress = () => {
   const { user } = useAuth();
-  const [learningProgress, setLearningProgress] = useState<NextLearningItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState<StudentCourseProgress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProgress = async () => {
       if (!user) {
-        setLoading(false);
+        setIsLoading(false);
         return;
       }
 
-      setLoading(true);
+      setIsLoading(true);
       try {
-        const { data: enrollmentsData, error: enrollmentsError } = await supabase
+        // Buscar matrículas do usuário
+        const { data: enrollments, error: enrollmentsError } = await supabase
           .from('enrollments')
           .select('class_id')
           .eq('student_id', user.id)
@@ -38,130 +59,111 @@ export const useStudentLearningProgress = () => {
 
         if (enrollmentsError) throw enrollmentsError;
 
-        if (!enrollmentsData || enrollmentsData.length === 0) {
-          setLearningProgress([]);
-          setLoading(false);
+        if (!enrollments || enrollments.length === 0) {
+          setProgress([]);
+          setIsLoading(false);
           return;
         }
 
-        const classIds = enrollmentsData.map(e => e.class_id);
+        const classIds = enrollments.map(e => e.class_id);
 
-        const { data: classCoursesData, error: classCoursesError } = await supabase
+        // Buscar cursos associados a essas turmas
+        // A instrução select deve corresponder à interface Course
+        const { data: classCourses, error: classCoursesError } = await supabase
           .from('class_courses')
-          .select('course_id, courses(id, title, image_url)')
-          .in('class_id', classIds);
+          .select('course_id, courses(id, title, description, image_url, order_index, created_at)'); // Garantir que todos os campos sejam selecionados
 
         if (classCoursesError) throw classCoursesError;
 
-        const uniqueCourseIds = [...new Set(classCoursesData?.map(cc => cc.course_id))] as string[];
         const coursesMap = new Map<string, Course>();
-        classCoursesData?.forEach(cc => {
-          if (cc.courses) {
-            coursesMap.set(cc.course_id, cc.courses as Course);
+        classCourses.forEach(cc => {
+          // cc.courses pode ser um array de objetos, mesmo que seja apenas um.
+          // Esperamos um único objeto Course por entrada class_course.
+          const courseData = Array.isArray(cc.courses) ? cc.courses[0] : cc.courses;
+          if (courseData) {
+            // Cast para unknown primeiro, depois para Course para satisfazer TS2352
+            coursesMap.set(cc.course_id, courseData as unknown as Course);
           }
         });
 
-        if (uniqueCourseIds.length === 0) {
-          setLearningProgress([]);
-          setLoading(false);
-          return;
-        }
+        const courseIds = Array.from(coursesMap.keys());
 
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from('lessons')
-          .select('*')
-          .in('course_id', uniqueCourseIds)
-          .order('course_id')
-          .order('module_id')
-          .order('order_index');
+        // Buscar módulos e lições para esses cursos
+        const { data: modulesData, error: modulesError } = await supabase
+          .from('modules')
+          .select('id, title, course_id, lessons(id, title, course_id, module_id)')
+          .in('course_id', courseIds)
+          .order('order_index', { foreignTable: 'lessons', ascending: true })
+          .order('order_index', { ascending: true });
 
-        if (lessonsError) throw lessonsError;
+        if (modulesError) throw modulesError;
 
-        const lessonIds = lessonsData?.map(l => l.id) || [];
-        const { data: exercisesData, error: exercisesError } = lessonIds.length > 0
-          ? await supabase
-            .from('exercises')
-            .select('id, lesson_id')
-            .in('lesson_id', lessonIds)
-          : { data: [], error: null };
-
-        if (exercisesError) throw exercisesError;
-
-        const { data: progressData, error: progressError } = await supabase
+        // Buscar progresso do aluno para as lições
+        const { data: studentProgressData, error: studentProgressError } = await supabase
           .from('student_progress')
-          .select('lesson_id, exercise_id, completed')
-          .eq('user_id', user.id);
+          .select('lesson_id, completed')
+          .eq('user_id', user.id)
+          .eq('completed', true);
 
-        if (progressError) throw progressError;
+        if (studentProgressError) throw studentProgressError;
 
-        const completedLessons = new Set(progressData?.filter(p => p.lesson_id && p.completed).map(p => p.lesson_id));
-        const completedExercises = new Set(progressData?.filter(p => p.exercise_id && p.completed).map(p => p.exercise_id));
+        const completedLessons = new Set(studentProgressData?.map(p => p.lesson_id));
 
-        // Fix: Properly type the reduce function
-        const exercisesByLesson: Record<string, string[]> = (exercisesData || []).reduce(
-          (acc: Record<string, string[]>, ex: any) => {
-            if (ex.lesson_id) {
-              if (!acc[ex.lesson_id]) acc[ex.lesson_id] = [];
-              acc[ex.lesson_id].push(ex.id);
-            }
-            return acc;
-          },
-          {} as Record<string, string[]>
-        );
+        const courseProgressMap = new Map<string, StudentCourseProgress>();
 
-        const results: NextLearningItem[] = [];
+        modulesData.forEach(module => {
+          const course = coursesMap.get(module.course_id);
+          if (!course) return;
 
-        // Fix: Type courseId as string
-        for (const courseId of uniqueCourseIds) {
-          const course = coursesMap.get(courseId);
-          if (!course) continue;
-
-          let nextLesson: Lesson | null = null;
-          let totalCourseLessons = 0;
-          let completedCourseLessons = 0;
-
-          const lessonsInCourse = lessonsData?.filter(l => l.course_id === courseId) || [];
-          totalCourseLessons = lessonsInCourse.length;
-
-          for (const lesson of lessonsInCourse) {
-            const isLessonMarkedComplete = completedLessons.has(lesson.id);
-            const lessonExercises = exercisesByLesson[lesson.id] || [];
-            const allLessonExercisesCompleted = lessonExercises.every(exId => completedExercises.has(exId));
-            const isLessonFullyCompleted = isLessonMarkedComplete && allLessonExercisesCompleted;
-
-            if (isLessonFullyCompleted) {
-              completedCourseLessons++;
-            }
-
-            if (!nextLesson && !isLessonFullyCompleted) {
-              nextLesson = lesson;
-            }
+          if (!courseProgressMap.has(course.id)) {
+            courseProgressMap.set(course.id, {
+              course: course,
+              modules: [],
+              completedLessonsCount: 0,
+              totalLessonsCount: 0,
+              completionPercentage: 0,
+            });
           }
 
-          const progressPercentage = totalCourseLessons > 0
-            ? Math.round((completedCourseLessons / totalCourseLessons) * 100)
-            : 0;
+          const currentCourseProgress = courseProgressMap.get(course.id)!;
+          const lessonsForModule: Lesson[] = (module.lessons || []).map((lesson: any) => ({
+            id: lesson.id,
+            title: lesson.title,
+            course_id: lesson.course_id,
+            module_id: lesson.module_id,
+            completed: completedLessons.has(lesson.id),
+          }));
 
-          results.push({
-            courseId: course.id,
-            courseTitle: course.title,
-            courseImageUrl: course.image_url,
-            nextLesson,
-            progressPercentage,
+          currentCourseProgress.modules.push({
+            id: module.id,
+            title: module.title,
+            course_id: module.course_id,
+            lessons: lessonsForModule,
           });
-        }
 
-        setLearningProgress(results);
+          currentCourseProgress.totalLessonsCount += lessonsForModule.length;
+          currentCourseProgress.completedLessonsCount += lessonsForModule.filter(l => l.completed).length;
+        });
+
+        const finalProgress = Array.from(courseProgressMap.values()).map(cp => ({
+          ...cp,
+          completionPercentage: cp.totalLessonsCount > 0
+            ? Math.round((cp.completedLessonsCount / cp.totalLessonsCount) * 100)
+            : 0,
+        }));
+
+        setProgress(finalProgress);
+
       } catch (error) {
-        console.error("Error fetching student learning progress:", error);
-        setLearningProgress([]);
+        console.error('Error fetching student learning progress:', error);
+        toast.error('Erro ao carregar progresso de aprendizado.');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchProgress();
   }, [user]);
 
-  return { learningProgress, loading };
+  return { progress, isLoading };
 };

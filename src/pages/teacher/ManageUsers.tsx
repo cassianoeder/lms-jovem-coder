@@ -1,263 +1,146 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import {
-  Code2,
-  ArrowLeft,
-  Users,
-  UserPlus,
-  LogOut,
-  Shield,
-  GraduationCap,
-  BookOpen,
-  Crown,
-  Key,
-  Edit,
-  Trash2,
-  Mail,
-  User,
+import { 
+  ArrowLeft, Users, Search, Edit, Trash2, LogOut
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, AppRole } from "@/hooks/useAuth"; // Importar AppRole
 import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser } from '@supabase/supabase-js'; // Importar o tipo User do Supabase
 
 interface UserWithRole {
   user_id: string;
-  full_name?: string;
-  role: string;
+  full_name: string | null; // Pode ser nulo
+  email: string;
+  role: AppRole;
   created_at: string;
-  email?: string;
+  avatar_url: string | null;
 }
 
 const ManageUsers = () => {
-  const { role: currentUserRole, signOut } = useAuth();
+  const { user, role: currentUserRole, signOut } = useAuth(); // Adicionado 'user' para o cabeçalho
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+
+  // Form states for editing user
+  const [editFullName, setEditFullName] = useState("");
+  const [editRole, setEditRole] = useState<AppRole>('student');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form states
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState("student");
-  const [resetPassword, setResetPassword] = useState("");
-  const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState("");
-
-  const isAdmin = currentUserRole === 'admin';
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      // Buscar usuários com roles e profiles
-      const { data: usersData, error: usersError } = await supabase
+      // Fetch all auth users
+      const { data: authUsersData, error: authUsersError } = await supabase.auth.admin.listUsers();
+      if (authUsersError) throw authUsersError;
+      const authUsersMap = new Map<string, SupabaseUser>();
+      authUsersData.users.forEach(u => authUsersMap.set(u.id, u));
+
+      // Fetch all profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url, created_at');
+      if (profilesError) throw profilesError;
+      const profilesMap = new Map<string, { user_id: string; full_name: string | null; avatar_url: string | null; created_at: string; }>();
+      profilesData.forEach(p => profilesMap.set(p.user_id, p));
+
+      // Fetch all user roles
+      const { data: userRolesData, error: userRolesError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          created_at,
-          profiles!inner(full_name)
-        `)
-        .order('created_at', { ascending: false });
+        .select('user_id, role');
+      if (userRolesError) throw userRolesError;
+      const userRolesMap = new Map<string, { user_id: string; role: AppRole; }>();
+      userRolesData.forEach(ur => userRolesMap.set(ur.user_id, ur as { user_id: string; role: AppRole; }));
 
-      if (usersError) throw usersError;
+      const combinedUsers: UserWithRole[] = [];
+      for (const [userId, authUser] of authUsersMap.entries()) {
+        const profile = profilesMap.get(userId);
+        const userRole = userRolesMap.get(userId);
 
-      // Buscar emails do auth.users
-      const userIds = usersData?.map(u => u.user_id) || [];
-      const { data: authUsers } = await supabase.auth.admin.listUsers();
-      
-      const merged = (usersData || []).map(user => ({
-        ...user,
-        email: authUsers.users.find(au => au.id === user.user_id)?.email,
-      }));
+        if (profile && userRole) {
+          combinedUsers.push({
+            user_id: userId,
+            full_name: profile.full_name,
+            email: authUser.email || 'N/A',
+            role: userRole.role,
+            created_at: profile.created_at,
+            avatar_url: profile.avatar_url,
+          });
+        }
+      }
+      setUsers(combinedUsers);
 
-      setUsers(merged);
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error("Erro ao buscar usuários");
+      console.error("Error fetching users:", error);
+      toast.error("Erro ao carregar usuários.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateUser = async () => {
+    if (!selectedUser || !editFullName || !editRole) {
+      toast.error("Preencha todos os campos obrigatórios.");
+      return;
+    }
     setIsSubmitting(true);
-
-    if (!isAdmin) {
-      toast.error("Apenas administradores podem criar usuários");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Validação básica
-    if (!newEmail || !newPassword || !newName) {
-      toast.error("Preencha todos os campos obrigatórios");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: newEmail,
-        p_password: newPassword,
-        p_full_name: newName,
-        p_role: newRole,
-      });
-
-      if (error) {
-        console.error('RPC Error:', error);
-        throw error;
-      }
-
-      toast.success(`Usuário ${newRole} criado com sucesso!`);
-      setDialogOpen(false);
-      resetForm();
-      fetchUsers();
-    } catch (error: any) {
-      console.error('Create user error:', error);
-      toast.error(error.message || "Erro ao criar usuário");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    if (!selectedUser) {
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!resetPassword || resetPassword.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.rpc('admin_update_user_password', {
-        p_user_id: selectedUser.user_id,
-        p_new_password: resetPassword,
-      });
-
-      if (error) throw error;
-
-      toast.success("Senha atualizada com sucesso!");
-      setPasswordDialogOpen(false);
-      setResetPassword("");
-      setSelectedUser(null);
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao atualizar senha");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    if (!selectedUser) {
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       const { error } = await supabase.rpc('admin_update_user', {
         p_user_id: selectedUser.user_id,
-        p_full_name: editName || undefined,
-        p_role: editRole || undefined,
+        p_full_name: editFullName,
+        p_role: editRole,
       });
-
       if (error) throw error;
-
       toast.success("Usuário atualizado com sucesso!");
-      setEditDialogOpen(false);
-      setSelectedUser(null);
-      setEditName("");
-      setEditRole("");
+      setEditUserDialogOpen(false);
       fetchUsers();
     } catch (error: any) {
-      toast.error(error.message || "Erro ao atualizar usuário");
+      console.error("Error updating user:", error);
+      toast.error("Erro ao atualizar usuário: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este usuário? Esta ação é irreversível.")) return;
-
+    if (!confirm("Tem certeza que deseja excluir este usuário? Esta ação é irreversível e removerá todos os dados associados.")) return;
     try {
-      const { error } = await supabase.rpc('admin_delete_user', {
-        p_user_id: userId,
-      });
-
+      const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId });
       if (error) throw error;
-
       toast.success("Usuário excluído com sucesso!");
       fetchUsers();
     } catch (error: any) {
-      toast.error(error.message || "Erro ao excluir usuário");
+      console.error("Error deleting user:", error);
+      toast.error("Erro ao excluir usuário: " + error.message);
     }
   };
 
-  const resetForm = () => {
-    setNewEmail("");
-    setNewPassword("");
-    setNewName("");
-    setNewRole("student");
-    setIsSubmitting(false);
+  const openEditUserDialog = (user: UserWithRole) => {
+    setSelectedUser(user);
+    setEditFullName(user.full_name || ''); // Garantir que não é nulo
+    setEditRole(user.role);
+    setEditUserDialogOpen(true);
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'admin': return <Crown className="w-5 h-5" />;
-      case 'coordinator': return <Shield className="w-5 h-5" />;
-      case 'teacher': return <BookOpen className="w-5 h-5" />;
-      default: return <GraduationCap className="w-5 h-5" />;
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Administrador';
-      case 'coordinator': return 'Coordenador';
-      case 'teacher': return 'Professor';
-      default: return 'Aluno';
-    }
-  };
-
-  const getRoleBadgeClass = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-badge-gold/20 text-badge-gold';
-      case 'coordinator': return 'bg-level/20 text-level';
-      case 'teacher': return 'bg-accent/20 text-accent';
-      default: return 'bg-primary/20 text-primary';
-    }
-  };
+  const filteredUsers = users.filter(u =>
+    (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || '') || // Adicionado verificação de nulo
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -267,547 +150,149 @@ const ManageUsers = () => {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background dark flex items-center justify-center">
-        <Card className="glass border-border/50 max-w-md">
-          <CardContent className="p-8 text-center">
-            <Shield className="w-16 h-16 text-destructive mx-auto mb-4" />
-            <h2 className="font-display text-2xl font-bold text-foreground mb-2">Acesso Restrito</h2>
-            <p className="text-muted-foreground mb-4">
-              Apenas administradores podem gerenciar usuários.
-            </p>
-            <Link to="/teacher">
-              <Button variant="outline">Voltar ao Painel</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const students = users.filter(u => u.role === 'student');
-  const teachers = users.filter(u => u.role === 'teacher');
-  const coordinators = users.filter(u => u.role === 'coordinator');
-  const admins = users.filter(u => u.role === 'admin');
-
   return (
     <div className="min-h-screen bg-background dark">
-      {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/teacher" className="text-muted-foreground hover:text-foreground">
+            <Link to="/teacher">
               <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
             </Link>
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Code2 className="w-5 h-5 text-primary-foreground" />
+                <Users className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="font-display text-lg font-bold text-foreground">Gerenciar Usuários</span>
             </div>
           </div>
-
-          <Button variant="outline" size="icon" onClick={signOut}>
-            <LogOut className="w-5 h-5 text-foreground" />
-          </Button>
+          <div className="flex items-center gap-4">
+            <span className="text-foreground font-medium">Olá, {user?.user_metadata?.full_name || user?.email}!</span>
+            <Button variant="outline" size="icon" onClick={signOut}>
+              <LogOut className="w-5 h-5 text-foreground" />
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-foreground mb-2">Usuários</h1>
-            <p className="text-muted-foreground">
-              {students.length} alunos • {teachers.length} professores • {coordinators.length} coordenadores • {admins.length} admins
-            </p>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar usuário por nome ou email..." 
+              className="pl-10" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          
-          <Dialog open={dialogOpen} onOpenChange={(open) => { 
-            setDialogOpen(open); 
-            if (!open) resetForm(); 
-          }}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:opacity-90">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Novo Usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Criar Novo Usuário</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo *</Label>
-                  <Input 
-                    id="name"
-                    value={newName} 
-                    onChange={(e) => setNewName(e.target.value)} 
-                    placeholder="Nome completo do usuário"
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input 
-                    id="email"
-                    type="email"
-                    value={newEmail} 
-                    onChange={(e) => setNewEmail(e.target.value)} 
-                    placeholder="email@exemplo.com"
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha *</Label>
-                  <Input 
-                    id="password"
-                    type="password"
-                    value={newPassword} 
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    minLength={6}
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Função *</Label>
-                  <Select value={newRole} onValueChange={setNewRole} disabled={isSubmitting}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Aluno</SelectItem>
-                      <SelectItem value="teacher">Professor</SelectItem>
-                      <SelectItem value="coordinator">Coordenador</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setDialogOpen(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    className="bg-gradient-primary"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Criando...
-                      </>
-                    ) : (
-                      "Criar Usuário"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {/* <Button 
+            className="bg-gradient-primary hover:opacity-90"
+            onClick={() => { /* Open create user dialog * / }}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Novo Usuário
+          </Button> */}
         </div>
 
-        {/* Tabs para diferentes tipos de usuários */}
-        <Tabs defaultValue="students" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="students">Alunos ({students.length})</TabsTrigger>
-            <TabsTrigger value="teachers">Professores ({teachers.length})</TabsTrigger>
-            <TabsTrigger value="coordinators">Coordenadores ({coordinators.length})</TabsTrigger>
-            <TabsTrigger value="admins">Administradores ({admins.length})</TabsTrigger>
-          </TabsList>
-
-          {/* Alunos */}
-          <TabsContent value="students">
-            <Card className="glass border-border/50">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {students.length > 0 ? students.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+        {filteredUsers.length === 0 ? (
+          <Card className="glass border-border/50">
+            <CardContent className="py-12 text-center">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {searchQuery ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado ainda"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="glass border-border/50">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Criado Em</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.user_id}>
+                    <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <User className="w-5 h-5 text-primary" />
+                          <span className="font-medium text-primary">
+                            {user.full_name?.charAt(0).toUpperCase()}
+                          </span>
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Criado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
+                        <p className="font-medium">{user.full_name}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getRoleBadgeClass(user.role)}>
-                          {getRoleLabel(user.role)}
-                        </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setPasswordDialogOpen(true);
-                          }}
-                        >
-                          <Key className="w-4 h-4 mr-1" />
-                          Senha
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setEditName(user.full_name || "");
-                            setEditRole(user.role);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-destructive" 
-                          onClick={() => handleDeleteUser(user.user_id)}
-                        >
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-level/10 text-level">
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{new Date(user.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button size="sm" variant="outline" onClick={() => openEditUserDialog(user)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      {currentUserRole === 'admin' && ( // Apenas admins podem deletar
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleDeleteUser(user.user_id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-muted-foreground text-center py-8">Nenhum aluno cadastrado</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Professores */}
-          <TabsContent value="teachers">
-            <Card className="glass border-border/50">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {teachers.length > 0 ? teachers.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-accent" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getRoleBadgeClass(user.role)}>
-                          {getRoleLabel(user.role)}
-                        </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setPasswordDialogOpen(true);
-                          }}
-                        >
-                          <Key className="w-4 h-4 mr-1" />
-                          Senha
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setEditName(user.full_name || "");
-                            setEditRole(user.role);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-destructive" 
-                          onClick={() => handleDeleteUser(user.user_id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-muted-foreground text-center py-8">Nenhum professor cadastrado</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Coordenadores */}
-          <TabsContent value="coordinators">
-            <Card className="glass border-border/50">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {coordinators.length > 0 ? coordinators.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-level/20 flex items-center justify-center">
-                          <Shield className="w-5 h-5 text-level" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getRoleBadgeClass(user.role)}>
-                          {getRoleLabel(user.role)}
-                        </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setPasswordDialogOpen(true);
-                          }}
-                        >
-                          <Key className="w-4 h-4 mr-1" />
-                          Senha
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setEditName(user.full_name || "");
-                            setEditRole(user.role);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-destructive" 
-                          onClick={() => handleDeleteUser(user.user_id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-muted-foreground text-center py-8">Nenhum coordenador cadastrado</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Administradores */}
-          <TabsContent value="admins">
-            <Card className="glass border-border/50">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {admins.length > 0 ? admins.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-badge-gold/20 flex items-center justify-center">
-                          <Crown className="w-5 h-5 text-badge-gold" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getRoleBadgeClass(user.role)}>
-                          {getRoleLabel(user.role)}
-                        </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setPasswordDialogOpen(true);
-                          }}
-                        >
-                          <Key className="w-4 h-4 mr-1" />
-                          Senha
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setEditName(user.full_name || "");
-                            setEditRole(user.role);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
-                        {admins.length > 1 && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="text-destructive" 
-                            onClick={() => handleDeleteUser(user.user_id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-muted-foreground text-center py-8">Nenhum administrador cadastrado</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
       </main>
 
-      {/* Dialog para reset de senha */}
-      <Dialog open={passwordDialogOpen} onOpenChange={(open) => { 
-        setPasswordDialogOpen(open); 
-        if (!open) {
-          setResetPassword("");
-          setSelectedUser(null);
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Redefinir Senha</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Usuário: <strong>{selectedUser?.full_name}</strong>
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="resetPassword">Nova Senha</Label>
-              <Input
-                id="resetPassword"
-                type="password"
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                placeholder="Digite a nova senha"
-                minLength={6}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setPasswordDialogOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-gradient-primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Atualizando...
-                  </>
-                ) : (
-                  "Atualizar Senha"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para editar usuário */}
-      <Dialog open={editDialogOpen} onOpenChange={(open) => { 
-        setEditDialogOpen(open); 
-        if (!open) {
-          setEditName("");
-          setEditRole("");
-          setSelectedUser(null);
-        }
-      }}>
+      {/* Edit User Dialog */}
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdateUser} className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Usuário: <strong>{selectedUser?.full_name}</strong>
-              </p>
-            </div>
+          <form onSubmit={(e) => { e.preventDefault(); handleUpdateUser(); }} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="editName">Nome Completo</Label>
+              <Label htmlFor="editFullName">Nome Completo</Label>
               <Input
-                id="editName"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Nome do usuário"
+                id="editFullName"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                placeholder="Nome completo do usuário"
                 disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editRole">Função</Label>
-              <Select value={editRole} onValueChange={setEditRole} disabled={isSubmitting}>
+              <Label htmlFor="editRole">Role</Label>
+              <Select value={editRole} onValueChange={(value: AppRole) => setEditRole(value)} disabled={isSubmitting}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="student">Aluno</SelectItem>
-                  <SelectItem value="teacher">Professor</SelectItem>
-                  <SelectItem value="coordinator">Coordenador</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="coordinator">Coordinator</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setEditDialogOpen(false)}
-                disabled={isSubmitting}
-              >
+              <Button variant="outline" onClick={() => setEditUserDialogOpen(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
-                className="bg-gradient-primary"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="bg-gradient-primary" disabled={isSubmitting}>
                 {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Atualizando...
-                  </>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  "Atualizar Usuário"
+                  "Salvar Alterações"
                 )}
               </Button>
             </DialogFooter>
