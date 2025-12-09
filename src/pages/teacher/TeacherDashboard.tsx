@@ -48,7 +48,11 @@ const TeacherDashboard = () => {
   ];
 
   if (loading) {
-    return <div className="min-h-screen bg-background dark flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+    return (
+      <div className="min-h-screen bg-background dark flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
   }
 
   return (
@@ -128,27 +132,24 @@ const TeacherDashboard = () => {
             </Card>
           </Link>
 
+          {/* Gerenciar Usuários (Apenas Admin) */}
           {isAdmin && (
-            <Card className="glass border-border/50 border-badge-gold/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="font-display flex items-center gap-2 text-base">
-                  <UserCog className="w-5 h-5 text-badge-gold" />
-                  Administração
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Link to="/teacher/users">
-                  <Button className="bg-gradient-primary hover:opacity-90 w-full justify-between">
-                    <span className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Gerenciar Usuários
-                    </span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <p className="text-xs text-muted-foreground mt-2">Cadastre professores e coordenadores</p>
-              </CardContent>
-            </Card>
+            <Link to="/teacher/users">
+              <Card className="glass border-border/50 border-badge-gold/30 hover:border-badge-gold/50 transition-all cursor-pointer group">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-xp flex items-center justify-center">
+                      <UserCog className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-display text-2xl font-bold text-foreground">Gerenciar</p>
+                      <p className="text-muted-foreground">Usuários</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           )}
 
           <Card className="glass border-border/50">

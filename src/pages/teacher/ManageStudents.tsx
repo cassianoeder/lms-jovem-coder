@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Users, Search, Eye, Trash2, Shield, BookOpen, Zap, Trophy, TrendingUp, Code2, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { ArrowLeft, Users, Search, Eye, Trash2, Shield, BookOpen, Zap, Trophy, TrendingUp, Code2, Mail, Plus, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -49,17 +49,32 @@ interface StreakData {
   current_streak: number;
 }
 
+interface Class {
+  id: string;
+  name: string;
+}
+
 const ManageStudents = () => {
   const { role } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState<Student | null>(null);
 
   useEffect(() => {
     fetchStudents();
+    fetchClasses();
   }, []);
+
+  const fetchClasses = async () => {
+    const { data } = await supabase.from('classes').select('id, name').order('name');
+    if (data) setClasses(data);
+  };
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -96,7 +111,6 @@ const ManageStudents = () => {
       .eq('status', 'approved')
       .in('student_id', studentIds);
 
-    // Fixing type issues with proper typing
     const xpMap = new Map<string, { total_xp: number; level: number }>();
     if (xpData) {
       xpData.forEach(x => {
@@ -121,7 +135,6 @@ const ManageStudents = () => {
     const studentsData: Student[] = (profiles || []).map(p => ({
       ...p,
       role: 'student',
-      // Fixing access to properly typed properties
       total_xp: xpMap.get(p.user_id)?.total_xp || 0,
       level: xpMap.get(p.user_id)?.level || 1,
       current_streak: streakMap.get(p.user_id)?.current_streak || 0,
@@ -201,6 +214,33 @@ const ManageStudents = () => {
     setDetailDialogOpen(true);
   };
 
+  const handleEnrollStudent = async (student: Student) => {
+    setSelectedStudentForEnroll(student);
+    setEnrollDialogOpen(true);
+  };
+
+  const confirmEnrollment = async () => {
+    if (!selectedStudentForEnroll || !selectedClass) return;
+
+    try {
+      const { error } = await supabase.rpc('admin_enroll_user', {
+        p_user_id: selectedStudentForEnroll.user_id,
+        p_class_id: selectedClass,
+        p_status: 'approved'
+      });
+
+      if (error) throw error;
+
+      toast.success("Aluno matriculado na turma com sucesso!");
+      setEnrollDialogOpen(false);
+      setSelectedStudentForEnroll(null);
+      setSelectedClass("");
+      fetchStudents();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   const deleteStudent = async (userId: string) => {
     if (!confirm("Tem certeza que deseja remover este aluno? Esta ação é irreversível.")) return;
     
@@ -233,15 +273,17 @@ const ManageStudents = () => {
   return (
     <div className="min-h-screen bg-background dark">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-3 flex items-center gap-4">
-          <Link to="/teacher">
-            <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
-              <Code2 className="w-5 h-5 text-primary-foreground" />
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/teacher">
+              <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
+                <Code2 className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display text-lg font-bold text-foreground">Gerenciar Alunos</span>
             </div>
-            <span className="font-display text-lg font-bold text-foreground">Gerenciar Alunos</span>
           </div>
         </div>
       </header>
@@ -260,6 +302,7 @@ const ManageStudents = () => {
               </div>
             </CardContent>
           </Card>
+
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -275,6 +318,7 @@ const ManageStudents = () => {
               </div>
             </CardContent>
           </Card>
+
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -290,6 +334,7 @@ const ManageStudents = () => {
               </div>
             </CardContent>
           </Card>
+
           <Card className="glass border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -306,6 +351,7 @@ const ManageStudents = () => {
             </CardContent>
           </Card>
         </div>
+
         <div className="flex items-center gap-4 mb-6">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -316,7 +362,14 @@ const ManageStudents = () => {
               onChange={(e) => setSearchQuery(e.target.value)} 
             />
           </div>
+          <Link to="/teacher/users">
+            <Button className="bg-gradient-primary hover:opacity-90">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Criar Novo Aluno
+            </Button>
+          </Link>
         </div>
+
         {filteredStudents.length === 0 ? (
           <Card className="glass border-border/50">
             <CardContent className="py-12 text-center">
@@ -324,6 +377,9 @@ const ManageStudents = () => {
               <p className="text-muted-foreground">
                 {searchQuery ? "Nenhum aluno encontrado" : "Nenhum aluno cadastrado ainda"}
               </p>
+              <Link to="/teacher/users" className="mt-4 inline-block">
+                <Button className="bg-gradient-primary">Criar Primeiro Aluno</Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (
@@ -376,6 +432,9 @@ const ManageStudents = () => {
                       <Button size="sm" variant="outline" onClick={() => viewStudentDetails(student)}>
                         <Eye className="w-4 h-4 mr-1" />Detalhes
                       </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEnrollStudent(student)}>
+                        <Plus className="w-4 h-4 mr-1" />Turma
+                      </Button>
                       {role === 'admin' && (
                         <Button 
                           size="sm" 
@@ -394,6 +453,8 @@ const ManageStudents = () => {
           </Card>
         )}
       </main>
+
+      {/* Dialog para detalhes do aluno */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -458,6 +519,43 @@ const ManageStudents = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para matricular em turma */}
+      <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Matricular Aluno em Turma</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Aluno: <strong>{selectedStudentForEnroll?.full_name}</strong>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Selecione a Turma</Label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha uma turma" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEnrollDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={confirmEnrollment} disabled={!selectedClass} className="bg-gradient-primary">
+                Matricular
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
