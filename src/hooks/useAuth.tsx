@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
+      console.error("Supabase URL or Key is missing.");
       setSupabaseConfigured(false);
       setLoading(false);
       return;
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       new URL(supabaseUrl);
     } catch (e) {
+      console.error("Invalid Supabase URL format:", supabaseUrl);
       setSupabaseConfigured(false);
       setLoading(false);
       return;
@@ -70,8 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (profileError) {
           console.error('Error fetching profile:', profileError);
+          // Don't throw error, just log it. Profile might not exist yet.
         } else if (profileData) {
           setProfile(profileData);
+        } else {
+          // Profile does not exist, clear it
+          setProfile(null);
         }
         
         // Fetch role
@@ -83,8 +89,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
         if (roleError) {
           console.error('Error fetching role:', roleError);
+          // Don't throw error, just log it. Role might not exist yet.
         } else if (roleData) {
           setRole(roleData.role as AppRole);
+        } else {
+          // Role does not exist, clear it
+          setRole(null);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -94,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -110,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log("Initial session check:", session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -126,48 +138,78 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: new Error("Supabase not configured") };
     }
     
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+    console.log("Attempting sign up for:", email);
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: {
           full_name: fullName,
-          // Note: The role will be set by admin later, not during signup
         },
       },
     });
     
-    // After signup, create profile and default role
-    if (!error) {
+    if (error) {
+      console.error("Sign up error:", error);
+      return { error: error as Error | null };
+    }
+
+    if (!data.user || !data.session) {
+      // Email confirmation might be required
+      console.log("Sign up successful, but session is null. Email confirmation might be required.");
+      // We still need to create the profile and role, so we'll use the user from the data object
+      // if available, otherwise we can't proceed.
+      if (!data.user) {
+        return { error: new Error("Sign up successful, but no user data returned.") };
+      }
+    }
+
+    const userId = data.user.id;
+    console.log("User created with ID:", userId);
+
+    // Create profile and role in a single transaction-like operation
+    try {
       // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userId,
           full_name: fullName,
           avatar_url: null,
         });
       
       if (profileError) {
         console.error('Error creating profile:', profileError);
+        // Attempt to delete the user if profile creation fails
+        await supabase.auth.admin.deleteUser(userId);
+        return { error: new Error(`Failed to create profile: ${profileError.message}`) };
       }
       
-      // Create default student role
+      // Create role
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          role: 'student',
+          user_id: userId,
+          role: role, // Use the role passed to the function
         });
       
       if (roleError) {
         console.error('Error creating role:', roleError);
+        // Attempt to delete the user and profile if role creation fails
+        await supabase.auth.admin.deleteUser(userId);
+        return { error: new Error(`Failed to create role: ${roleError.message}`) };
       }
+
+      console.log("Profile and role created successfully for user:", userId);
+      return { error: null };
+
+    } catch (err: any) {
+      console.error("Unexpected error during profile/role creation:", err);
+      // Attempt to delete the user if an unexpected error occurs
+      await supabase.auth.admin.deleteUser(userId);
+      return { error: new Error(`An unexpected error occurred: ${err.message}`) };
     }
-    
-    return { error: error as Error | null };
   };
 
   const signIn = async (email: string, password: string) => {
@@ -175,12 +217,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: new Error("Supabase not configured") };
     }
     
+    console.log("Attempting sign in for:", email);
     const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
-    return { error: error as Error | null };
+    if (error) {
+      console.error("Sign in error:", error);
+      return { error: error as Error | null };
+    }
+
+    console.log("Sign in successful for user:", data.user?.id);
+    // The onAuthStateChange listener will handle fetching profile and role
+    return { error: null };
   };
 
   const signOut = async () => {
@@ -193,11 +243,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRole(null);
+    console.log("Signing out...");
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Sign out error:", error);
+    }
+    // The onAuthStateChange listener will handle resetting the state
   };
 
   return (
