@@ -392,15 +392,71 @@ const ManageStudents = () => {
 
     setIsCreating(true);
     try {
-      // Usar a função RPC para criar o usuário
-      const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: newStudentEmail,
-        p_password: newStudentPassword,
-        p_full_name: newStudentName,
-        p_role: 'student'
+      // Criar usuário usando signup normal
+      const { data, error } = await supabase.auth.signUp({
+        email: newStudentEmail,
+        password: newStudentPassword,
+        options: {
+          data: {
+            full_name: newStudentName,
+            role: 'student'
+          }
+        }
       });
 
       if (error) throw error;
+
+      // Se o usuário foi criado com sucesso, vamos adicionar os registros adicionais
+      if (data.user) {
+        const userId = data.user.id;
+        
+        // Criar profile se não existir
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            user_id: userId,
+            full_name: newStudentName,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (profileError) throw profileError;
+
+        // Criar role se não existir
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: userId,
+            role: 'student',
+            created_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (roleError) throw roleError;
+
+        // Criar XP inicial se não existir
+        const { error: xpError } = await supabase
+          .from('student_xp')
+          .upsert({
+            user_id: userId,
+            total_xp: 0,
+            level: 1,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (xpError) throw xpError;
+
+        // Criar streak inicial se não existir
+        const { error: streakError } = await supabase
+          .from('streaks')
+          .upsert({
+            user_id: userId,
+            current_streak: 0,
+            longest_streak: 0,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (streakError) throw streakError;
+      }
 
       toast.success("Aluno criado com sucesso!");
       setCreateStudentDialogOpen(false);
