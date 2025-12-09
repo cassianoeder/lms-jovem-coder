@@ -1,27 +1,42 @@
-import React from 'react';
+import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth, AppRole } from '@/hooks/useAuth'; // Import AppRole
+import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
-const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: AppRole[] }) => {
+type AppRole = 'student' | 'teacher' | 'admin';
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+  allowedRoles?: AppRole[];
+}
+
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, role, loading } = useAuth();
 
   if (loading) {
-    return <div>Carregando...</div>; // Or a proper LoadingPage component
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  // Ensure role is not null before checking includes
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    // User is logged in but doesn't have the required role
-    if (role === 'teacher' || role === 'admin') return <Navigate to="/teacher/dashboard" replace />;
-    if (role === 'student') return <Navigate to="/student/dashboard" replace />;
-    return <Navigate to="/unauthorized" replace />; // Fallback for unknown roles
+    // Redirect to appropriate dashboard based on role
+    const roleRoutes: Record<AppRole, string> = {
+      student: '/student',
+      teacher: '/teacher',
+      admin: '/teacher',
+    };
+    
+    return <Navigate to={roleRoutes[role]} replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
