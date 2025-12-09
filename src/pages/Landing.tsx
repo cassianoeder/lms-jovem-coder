@@ -5,40 +5,46 @@ import { Trophy, Users, Zap, Target, BookOpen, ArrowRight, Star, Flame } from "l
 const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-hero dark relative overflow-hidden">
-      {/* Planeta Marte animado ao fundo */}
+      {/* Planeta Marte animado ao fundo - mais proeminente e menos desfocado */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="relative w-[800px] h-[800px] lg:w-[1000px] lg:h-[1000px] animate-pulse-slow">
-          {/* Planeta Marte */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-900/30 via-red-900/20 to-orange-800/10 blur-3xl animate-float">
-            {/* Superfície do planeta */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-800/20 via-red-700/15 to-orange-900/25">
-              {/* Detalhes da superfície - crateras e texturas */}
-              <div className="absolute top-[20%] left-[30%] w-20 h-20 rounded-full bg-orange-900/10 blur-xl"></div>
-              <div className="absolute top-[40%] right-[25%] w-16 h-16 rounded-full bg-red-900/10 blur-lg"></div>
-              <div className="absolute bottom-[30%] left-[20%] w-24 h-24 rounded-full bg-orange-800/10 blur-xl"></div>
-              <div className="absolute top-[60%] left-[45%] w-12 h-12 rounded-full bg-red-800/10 blur-md"></div>
-              <div className="absolute bottom-[45%] right-[35%] w-18 h-18 rounded-full bg-orange-900/10 blur-lg"></div>
+        <div className="relative w-[1200px] h-[1200px] lg:w-[1400px] lg:h-[1400px] animate-pulse-slow">
+          {/* Planeta Marte - menos blur e mais visível */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-800/40 via-red-700/30 to-orange-900/35 blur-xl animate-float">
+            {/* Superfície do planeta - mais detalhes */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-700/30 via-red-600/25 to-orange-800/30">
+              {/* Detalhes da superfície - crateras e texturas mais visíveis */}
+              <div className="absolute top-[15%] left-[25%] w-32 h-32 rounded-full bg-orange-900/20 blur-lg"></div>
+              <div className="absolute top-[35%] right-[20%] w-24 h-24 rounded-full bg-red-900/20 blur-md"></div>
+              <div className="absolute bottom-[25%] left-[15%] w-36 h-36 rounded-full bg-orange-800/20 blur-lg"></div>
+              <div className="absolute top-[55%] left-[40%] w-20 h-20 rounded-full bg-red-800/20 blur-sm"></div>
+              <div className="absolute bottom-[40%] right-[30%] w-28 h-28 rounded-full bg-orange-900/20 blur-md"></div>
+              <div className="absolute top-[70%] left-[60%] w-16 h-16 rounded-full bg-red-700/20 blur-sm"></div>
+              <div className="absolute top-[20%] right-[45%] w-20 h-20 rounded-full bg-orange-800/20 blur-md"></div>
               
-              {/* Pólos do planeta */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-white/5 blur-2xl"></div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-white/3 blur-xl"></div>
+              {/* Pólos do planeta - mais brilhantes */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-white/10 blur-xl"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-white/8 blur-lg"></div>
               
-              {/* Anéis de poeira/atmosfera */}
-              <div className="absolute inset-0 rounded-full border border-orange-700/20 blur-sm"></div>
-              <div className="absolute inset-2 rounded-full border border-red-700/10 blur-sm"></div>
+              {/* Anéis de poeira/atmosfera - mais visíveis */}
+              <div className="absolute inset-0 rounded-full border border-orange-600/30 blur-sm"></div>
+              <div className="absolute inset-2 rounded-full border border-red-600/20 blur-sm"></div>
+              <div className="absolute inset-4 rounded-full border border-orange-700/15 blur-sm"></div>
             </div>
           </div>
           
-          {/* Aura atmosférica */}
+          {/* Aura atmosférica - mais intensa */}
+          <div className="absolute -inset-10 rounded-full bg-gradient-to-t from-orange-500/8 via-transparent to-red-500/8 blur-2xl"></div>
           <div className="absolute -inset-20 rounded-full bg-gradient-to-t from-orange-600/5 via-transparent to-red-600/5 blur-3xl"></div>
           
-          {/* Estrelas ao redor */}
-          <div className="absolute top-10 left-10 w-2 h-2 bg-white/60 rounded-full animate-twinkle"></div>
-          <div className="absolute top-20 right-20 w-1 h-1 bg-white/40 rounded-full animate-twinkle" style={{ animationDelay: '0.5s' }}></div>
-          <div className="absolute bottom-20 left-20 w-2 h-2 bg-white/50 rounded-full animate-twinkle" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute bottom-10 right-10 w-1 h-1 bg-white/30 rounded-full animate-twinkle" style={{ animationDelay: '1.5s' }}></div>
-          <div className="absolute top-1/3 left-1/4 w-1 h-1 bg-white/40 rounded-full animate-twinkle" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-2/3 right-1/4 w-2 h-2 bg-white/50 rounded-full animate-twinkle" style={{ animationDelay: '2.5s' }}></div>
+          {/* Estrelas ao redor - mais brilhantes */}
+          <div className="absolute top-10 left-10 w-3 h-3 bg-white/80 rounded-full animate-twinkle"></div>
+          <div className="absolute top-20 right-20 w-2 h-2 bg-white/60 rounded-full animate-twinkle" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-20 left-20 w-3 h-3 bg-white/70 rounded-full animate-twinkle" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-10 right-10 w-2 h-2 bg-white/50 rounded-full animate-twinkle" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/3 left-1/4 w-2 h-2 bg-white/60 rounded-full animate-twinkle" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-2/3 right-1/4 w-3 h-3 bg-white/70 rounded-full animate-twinkle" style={{ animationDelay: '2.5s' }}></div>
+          <div className="absolute top-1/4 right-1/3 w-2 h-2 bg-white/50 rounded-full animate-twinkle" style={{ animationDelay: '3s' }}></div>
+          <div className="absolute bottom-1/3 left-1/3 w-3 h-3 bg-white/60 rounded-full animate-twinkle" style={{ animationDelay: '3.5s' }}></div>
         </div>
       </div>
 
