@@ -17,23 +17,46 @@ const Setup = () => {
     supabaseKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
   });
 
+  const validateUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveEnv = () => {
     if (!formData.supabaseUrl || !formData.supabaseKey) {
       setError("Por favor, preencha a URL e a chave do Supabase");
       return;
     }
+
+    if (!validateUrl(formData.supabaseUrl)) {
+      setError("Formato de URL inválido. Deve começar com https://");
+      return;
+    }
+
+    if (!formData.supabaseUrl.includes(".supabase.co")) {
+      setError("URL do Supabase inválida. Deve ser no formato https://seu-projeto.supabase.co");
+      return;
+    }
+
+    // In a real environment, we would save to .env file
+    // For now, we'll just proceed to next step
     setStep("import");
   };
 
   const handleFinishSetup = () => {
-    // Simular conclusão do setup
+    // Simulate setup completion
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
       setStep("success");
-      // Redirecionar para landing após 2 segundos
+      // Redirect to landing after 2 seconds
       setTimeout(() => {
-        navigate("/");
+        // Refresh the page to reload environment variables
+        window.location.reload();
       }, 2000);
     }, 1500);
   };
@@ -47,9 +70,7 @@ const Setup = () => {
               <Database className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-2xl">Configuração Inicial</CardTitle>
-            <CardDescription>
-              Configure seu novo banco de dados Supabase
-            </CardDescription>
+            <CardDescription>Configure seu novo banco de dados Supabase</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -58,14 +79,12 @@ const Setup = () => {
                 Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Dashboard do Supabase</a> e crie um novo projeto.
               </p>
             </div>
-            
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-foreground">Passo 2: Configurar Variáveis de Ambiente</h3>
               <p className="text-muted-foreground">
                 Após criar seu projeto, obtenha a URL e a Chave Anônima e preencha os campos na próxima etapa.
               </p>
             </div>
-            
             <div className="space-y-4">
               <h3 className="font-display text-lg font-semibold text-foreground">Passo 3: Importar Esquema do Banco de Dados</h3>
               <p className="text-muted-foreground">
@@ -73,20 +92,16 @@ const Setup = () => {
               </p>
               <Button 
                 onClick={() => {
-                  // Em um ambiente real, isso poderia baixar o arquivo ou abrir uma nova aba
+                  // In a real environment, this would download the file
                   alert("O script 'scripts/full-database-schema.sql' foi gerado. Use-o no SQL Editor do seu projeto Supabase.");
-                }}
+                }} 
                 className="w-full bg-gradient-primary"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Ver Script de Importação (scripts/full-database-schema.sql)
               </Button>
             </div>
-            
-            <Button 
-              onClick={() => setStep("env")} 
-              className="w-full bg-gradient-primary"
-            >
+            <Button onClick={() => setStep("env")} className="w-full bg-gradient-primary">
               Continuar para Configuração
             </Button>
           </CardContent>
@@ -104,9 +119,7 @@ const Setup = () => {
               <Database className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-2xl">Configuração do Supabase</CardTitle>
-            <CardDescription>
-              Insira as credenciais do seu novo projeto
-            </CardDescription>
+            <CardDescription>Insira as credenciais do seu novo projeto</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
@@ -116,35 +129,30 @@ const Setup = () => {
             )}
             <div className="space-y-2">
               <Label htmlFor="supabaseUrl">URL do Supabase</Label>
-              <Input
-                id="supabaseUrl"
-                type="url"
-                placeholder="https://seu-projeto.supabase.co"
-                value={formData.supabaseUrl}
+              <Input 
+                id="supabaseUrl" 
+                type="url" 
+                placeholder="https://seu-projeto.supabase.co" 
+                value={formData.supabaseUrl} 
                 onChange={(e) => setFormData({ ...formData, supabaseUrl: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">Exemplo: https://xyz123.supabase.co</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="supabaseKey">Chave Pública (anon key)</Label>
-              <Input
-                id="supabaseKey"
-                type="password"
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                value={formData.supabaseKey}
+              <Input 
+                id="supabaseKey" 
+                type="password" 
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+                value={formData.supabaseKey} 
                 onChange={(e) => setFormData({ ...formData, supabaseKey: e.target.value })}
               />
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep("instructions")}
-              >
+              <Button variant="outline" onClick={() => setStep("instructions")}>
                 Voltar
               </Button>
-              <Button 
-                onClick={handleSaveEnv}
-                className="flex-1 bg-gradient-primary"
-              >
+              <Button onClick={handleSaveEnv} className="flex-1 bg-gradient-primary">
                 Salvar e Continuar
               </Button>
             </div>
@@ -166,9 +174,7 @@ const Setup = () => {
               <FileText className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-2xl">Importar Esquema do Banco de Dados</CardTitle>
-            <CardDescription>
-              Execute o script para criar tabelas e funções
-            </CardDescription>
+            <CardDescription>Execute o script para criar tabelas e funções</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -191,25 +197,16 @@ const Setup = () => {
                 </li>
               </ol>
             </div>
-            
             <Alert>
               <AlertDescription>
                 <strong>Importante:</strong> Aguarde a execução completa do script antes de continuar. Isso pode levar alguns segundos.
               </AlertDescription>
             </Alert>
-            
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep("env")}
-              >
+              <Button variant="outline" onClick={() => setStep("env")}>
                 Voltar
               </Button>
-              <Button 
-                onClick={handleFinishSetup}
-                disabled={loading}
-                className="flex-1 bg-gradient-primary"
-              >
+              <Button onClick={handleFinishSetup} disabled={loading} className="flex-1 bg-gradient-primary">
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -235,9 +232,7 @@ const Setup = () => {
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-2xl">Configuração Concluída!</CardTitle>
-            <CardDescription>
-              O sistema está pronto para uso. Redirecionando...
-            </CardDescription>
+            <CardDescription>O sistema está pronto para uso. Redirecionando...</CardDescription>
           </CardHeader>
         </Card>
       </div>

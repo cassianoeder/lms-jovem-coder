@@ -38,6 +38,17 @@ interface StudentDetail {
   enrollments: { class_name: string; course_titles: string[] }[];
 }
 
+interface XpData {
+  user_id: string;
+  total_xp: number;
+  level: number;
+}
+
+interface StreakData {
+  user_id: string;
+  current_streak: number;
+}
+
 const ManageStudents = () => {
   const { role } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
@@ -56,52 +67,67 @@ const ManageStudents = () => {
       .from('user_roles')
       .select('user_id')
       .eq('role', 'student');
-      
+    
     if (!studentRoles || studentRoles.length === 0) {
       setStudents([]);
       setLoading(false);
       return;
     }
-    
+
     const studentIds = studentRoles.map(r => r.user_id);
+    
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, full_name, avatar_url, created_at');
-      
+    
     const { data: xpData } = await supabase
       .from('student_xp')
       .select('user_id, total_xp, level')
       .in('user_id', studentIds);
-      
+    
     const { data: streaks } = await supabase
       .from('streaks')
       .select('user_id, current_streak')
       .in('user_id', studentIds);
-      
+    
     const { data: enrollments } = await supabase
       .from('enrollments')
       .select('student_id')
       .eq('status', 'approved')
       .in('student_id', studentIds);
-      
-    // Correção 3, 4, 5: Tipar corretamente os objetos do mapa
-    const xpMap = new Map(xpData?.map(x => [x.user_id, x]) || []);
-    const streakMap = new Map(streaks?.map(s => [s.user_id, s]) || []);
-    const enrollmentCounts = (enrollments || []).reduce((acc, e) => {
-      acc[e.student_id] = (acc[e.student_id] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
+
+    // Fixing type issues with proper typing
+    const xpMap = new Map<string, { total_xp: number; level: number }>();
+    if (xpData) {
+      xpData.forEach(x => {
+        xpMap.set(x.user_id, { total_xp: x.total_xp || 0, level: x.level || 1 });
+      });
+    }
+
+    const streakMap = new Map<string, { current_streak: number }>();
+    if (streaks) {
+      streaks.forEach(s => {
+        streakMap.set(s.user_id, { current_streak: s.current_streak || 0 });
+      });
+    }
+
+    const enrollmentCounts: Record<string, number> = {};
+    if (enrollments) {
+      enrollments.forEach(e => {
+        enrollmentCounts[e.student_id] = (enrollmentCounts[e.student_id] || 0) + 1;
+      });
+    }
+
     const studentsData: Student[] = (profiles || []).map(p => ({
       ...p,
       role: 'student',
-      // Corrigindo acesso às propriedades tipadas
+      // Fixing access to properly typed properties
       total_xp: xpMap.get(p.user_id)?.total_xp || 0,
       level: xpMap.get(p.user_id)?.level || 1,
       current_streak: streakMap.get(p.user_id)?.current_streak || 0,
       enrollments_count: enrollmentCounts[p.user_id] || 0,
     }));
-    
+
     setStudents(studentsData);
     setLoading(false);
   };
@@ -112,51 +138,53 @@ const ManageStudents = () => {
       .select('total_xp, level')
       .eq('user_id', student.user_id)
       .maybeSingle();
-      
+    
     const { data: streak } = await supabase
       .from('streaks')
       .select('current_streak, longest_streak')
       .eq('user_id', student.user_id)
       .maybeSingle();
-      
+    
     const { count: badgesCount } = await supabase
       .from('student_badges')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', student.user_id);
-      
+    
     const { count: completedLessons } = await supabase
       .from('student_progress')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', student.user_id)
       .eq('completed', true)
       .not('lesson_id', 'is', null);
-      
+    
     const { count: completedExercises } = await supabase
       .from('student_progress')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', student.user_id)
       .eq('completed', true)
       .not('exercise_id', 'is', null);
-      
+    
     const { data: enrollments } = await supabase
       .from('enrollments')
       .select('class_id, classes(name)')
       .eq('student_id', student.user_id)
       .eq('status', 'approved');
-      
+
     const enrollmentDetails: { class_name: string; course_titles: string[] }[] = [];
+    
     for (const e of enrollments || []) {
-      const cls = e.classes as any;
+      const cls = (e as any).classes;
       const { data: classCourses } = await supabase
         .from('class_courses')
         .select('courses(title)')
         .eq('class_id', e.class_id);
+      
       enrollmentDetails.push({
         class_name: cls?.name || 'Turma',
         course_titles: (classCourses || []).map((cc: any) => cc.courses?.title).filter(Boolean),
       });
     }
-    
+
     setSelectedStudent({
       user_id: student.user_id,
       full_name: student.full_name,
@@ -169,11 +197,13 @@ const ManageStudents = () => {
       completed_exercises: completedExercises || 0,
       enrollments: enrollmentDetails,
     });
+    
     setDetailDialogOpen(true);
   };
 
   const deleteStudent = async (userId: string) => {
     if (!confirm("Tem certeza que deseja remover este aluno? Esta ação é irreversível.")) return;
+    
     await supabase.from('enrollments').delete().eq('student_id', userId);
     await supabase.from('enrollment_requests').delete().eq('student_id', userId);
     await supabase.from('student_progress').delete().eq('user_id', userId);
@@ -183,6 +213,7 @@ const ManageStudents = () => {
     await supabase.from('streaks').delete().eq('user_id', userId);
     await supabase.from('user_roles').delete().eq('user_id', userId);
     await supabase.from('profiles').delete().eq('user_id', userId);
+    
     toast.success("Aluno removido com sucesso");
     fetchStudents();
   };
@@ -278,7 +309,12 @@ const ManageStudents = () => {
         <div className="flex items-center gap-4 mb-6">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar aluno por nome..." className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <Input 
+              placeholder="Buscar aluno por nome..." 
+              className="pl-10" 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+            />
           </div>
         </div>
         {filteredStudents.length === 0 ? (
@@ -328,7 +364,8 @@ const ManageStudents = () => {
                     </TableCell>
                     <TableCell>
                       <span className="flex items-center gap-1 text-xp">
-                        <Zap className="w-4 h-4" /> {student.total_xp || 0}
+                        <Zap className="w-4 h-4" />
+                        {student.total_xp || 0}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -340,7 +377,12 @@ const ManageStudents = () => {
                         <Eye className="w-4 h-4 mr-1" />Detalhes
                       </Button>
                       {role === 'admin' && (
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteStudent(student.user_id)}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-destructive" 
+                          onClick={() => deleteStudent(student.user_id)}
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       )}
@@ -356,7 +398,8 @@ const ManageStudents = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" /> {selectedStudent?.full_name}
+              <Users className="w-5 h-5 text-primary" />
+              {selectedStudent?.full_name}
             </DialogTitle>
           </DialogHeader>
           {selectedStudent && (

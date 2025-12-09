@@ -12,17 +12,22 @@ const SetupGuard = ({ children }: { children: React.ReactNode }) => {
       // Verifica se as variáveis de ambiente estão configuradas
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
+      
       if (!supabaseUrl || !supabaseKey) {
         setNeedsSetup(true);
       } else {
-        // Se as variáveis estiverem configuradas, assumimos que o setup foi feito
-        // Em um ambiente real, você poderia fazer uma chamada de teste aqui
-        setNeedsSetup(false);
+        // Validate URL format
+        try {
+          new URL(supabaseUrl);
+          setNeedsSetup(false);
+        } catch (e) {
+          console.error("Invalid Supabase URL format:", supabaseUrl);
+          setNeedsSetup(true);
+        }
       }
       setLoading(false);
     };
-
+    
     checkSetup();
   }, []);
 
