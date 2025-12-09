@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Users, BookOpen, FileText, Code2, ChevronRight, LogOut, UserCog, 
   GraduationCap, Layers, School, Settings, Award, Home, BarChart3, 
-  PieChart, Calendar, Download, Filter, TrendingUp, Zap, CheckCircle 
+  PieChart, Calendar, Download, Filter, TrendingUp, Zap, CheckCircle,
+  Activity, Clock, Target, Star
 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,11 +16,30 @@ interface TopStudent {
   user_id: string;
   total_xp: number;
   level: number;
+  full_name: string;
 }
 
-interface Course {
+interface CourseProgress {
   id: string;
   title: string;
+  total_lessons: number;
+  completed_lessons: number;
+  total_students: number;
+  completion_rate: number;
+}
+
+interface RecentActivity {
+  id: string;
+  user_name: string;
+  action: string;
+  timestamp: string;
+}
+
+interface EnrollmentStats {
+  total: number;
+  this_week: number;
+  this_month: number;
+  pending: number;
 }
 
 const TeacherDashboard = () => {
@@ -38,8 +57,15 @@ const TeacherDashboard = () => {
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalTeachers, setTotalTeachers] = useState(0);
   const [totalClasses, setTotalClasses] = useState(0);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CourseProgress[]>([]);
   const [topStudents, setTopStudents] = useState<TopStudent[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [enrollmentStats, setEnrollmentStats] = useState<EnrollmentStats>({
+    total: 0,
+    this_week: 0,
+    this_month: 0,
+    pending: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,20 +113,60 @@ const TeacherDashboard = () => {
           .select('*', { count: 'exact', head: true });
         setTotalClasses(classCount || 0);
 
-        // Fetch courses
-        const { data: coursesData } = await supabase
-          .from('courses')
-          .select('id, title')
-          .order('order_index');
+        // Fetch course progress data
+        const { data: coursesData } = await supabase.rpc('get_course_progress_stats');
         setCourses(coursesData || []);
 
         // Fetch top students by XP
         const { data: topStudentsData } = await supabase
           .from('student_xp')
-          .select('user_id, total_xp, level')
+          .select('user_id, total_xp, level, profiles(full_name)')
           .order('total_xp', { ascending: false })
           .limit(5);
-        setTopStudents(topStudentsData || []);
+        
+        const formattedTopStudents = (topStudentsData || []).map(student => ({
+          user_id: student.user_id,
+          total_xp: student.total_xp || 0,
+          level: student.level || 1,
+          full_name: (student as any).profiles?.full_name || "Aluno"
+        }));
+        setTopStudents(formattedTopStudents);
+
+        // Fetch recent activities
+        const { data: activitiesData } = await supabase
+          .from('student_progress')
+          .select('id, user_id, lesson_id, exercise_id, completed_at, profiles(full_name)')
+          .order('completed_at', { ascending: false })
+          .limit(5);
+        
+        const formattedActivities = (activitiesData || []).map(activity => ({
+          id: activity.id,
+          user_name: (activity as any).profiles?.full_name || "Aluno",
+          action: activity.lesson_id ? "completou uma aula" : "completou um exercício",
+          timestamp: activity.completed_at || new Date().toISOString()
+        }));
+        setRecentActivities(formattedActivities);
+
+        // Fetch enrollment stats
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        
+        const [totalEnrollments, weekEnrollments, monthEnrollments, pendingRequests] = await Promise.all([
+          supabase.from('enrollments').select('*', { count: 'exact', head: true }),
+          supabase.from('enrollments').select('*', { count: 'exact', head: true }).gte('enrolled_at', oneWeekAgo.toISOString()),
+          supabase.from('enrollments').select('*', { count: 'exact', head: true }).gte('enrolled_at', oneMonthAgo.toISOString()),
+          supabase.from('enrollment_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+        ]);
+        
+        setEnrollmentStats({
+          total: totalEnrollments.count || 0,
+          this_week: weekEnrollments.count || 0,
+          this_month: monthEnrollments.count || 0,
+          pending: pendingRequests.count || 0
+        });
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -210,13 +276,43 @@ const TeacherDashboard = () => {
           </Card>
         </div>
 
+        {/* Enrollment Stats */}
+        <Card className="glass border-border/50 mb-8">
+          <CardHeader>
+            <CardTitle className="font-display flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              Estatísticas de Matrículas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="font-display text-2xl font-bold text-foreground">{enrollmentStats.total}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-success/5 border border-success/20">
+                <p className="text-sm text-muted-foreground">Esta Semana</p>
+                <p className="font-display text-2xl font-bold text-success">{enrollmentStats.this_week}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-info/5 border border-info/20">
+                <p className="text-sm text-muted-foreground">Este Mês</p>
+                <p className="font-display text-2xl font-bold text-info">{enrollmentStats.this_month}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-warning/5 border border-warning/20">
+                <p className="text-sm text-muted-foreground">Pendentes</p>
+                <p className="font-display text-2xl font-bold text-warning">{enrollmentStats.pending}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
-          {/* Courses Overview */}
+          {/* Courses Progress */}
           <Card className="glass border-border/50 lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-display flex items-center gap-2">
                 <PieChart className="w-5 h-5 text-primary" />
-                Cursos Disponíveis
+                Progresso dos Cursos
               </CardTitle>
               <Button variant="ghost" size="sm">
                 Ver detalhes
@@ -225,17 +321,28 @@ const TeacherDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {courses.map((course) => (
+                {courses.length > 0 ? courses.map((course) => (
                   <div key={course.id} className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/50">
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{course.title}</p>
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="font-medium text-foreground">{course.title}</p>
+                        <Badge variant="secondary" className="bg-primary/10 text-primary">
+                          {course.completion_rate}% concluído
+                        </Badge>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2 mb-2">
+                        <div 
+                          className="bg-gradient-primary h-2 rounded-full" 
+                          style={{ width: `${course.completion_rate}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{course.completed_lessons}/{course.total_lessons} aulas</span>
+                        <span>{course.total_students} alunos</span>
+                      </div>
                     </div>
-                    <Badge variant="secondary" className="bg-primary/10 text-primary">
-                      Ativo
-                    </Badge>
                   </div>
-                ))}
-                {courses.length === 0 && (
+                )) : (
                   <p className="text-muted-foreground text-center py-4">Nenhum curso cadastrado</p>
                 )}
               </div>
@@ -261,14 +368,14 @@ const TeacherDashboard = () => {
                     {index + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">Aluno #{index + 1}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Nível {student.level}
-                    </p>
+                    <p className="font-medium text-foreground">{student.full_name}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Nível {student.level}</span>
+                      <span>•</span>
+                      <span className="text-xp">{student.total_xp} XP</span>
+                    </div>
                   </div>
-                  <Badge variant="secondary" className="bg-xp/10 text-xp">
-                    {student.total_xp} XP
-                  </Badge>
+                  <Star className="w-4 h-4 text-warning" />
                 </div>
               )) : (
                 <p className="text-muted-foreground text-center py-4">Nenhum aluno cadastrado</p>
@@ -280,6 +387,35 @@ const TeacherDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Activities */}
+        <Card className="glass border-border/50 mb-8">
+          <CardHeader>
+            <CardTitle className="font-display flex items-center gap-2">
+              <Activity className="w-5 h-5 text-accent" />
+              Atividades Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentActivities.length > 0 ? recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50">
+                  <div className="w-2 h-2 rounded-full bg-success"></div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">
+                      <span className="text-primary">{activity.user_name}</span> {activity.action}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(activity.timestamp).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-muted-foreground text-center py-4">Nenhuma atividade recente</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {menuItems.map((item) => (

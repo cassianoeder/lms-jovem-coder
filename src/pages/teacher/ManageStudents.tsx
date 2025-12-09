@@ -9,7 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, Users, Search, Eye, Trash2, Shield, BookOpen, Zap, Trophy, TrendingUp, Code2, Mail, Plus, UserPlus } from "lucide-react";
+import { 
+  ArrowLeft, Users, Search, Eye, Trash2, Shield, BookOpen, Zap, Trophy, 
+  TrendingUp, Code2, Mail, Plus, UserPlus, BarChart3, PieChart, Download,
+  Filter, Calendar
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -54,6 +58,14 @@ interface Class {
   name: string;
 }
 
+interface StudentStats {
+  total_students: number;
+  active_students: number;
+  inactive_students: number;
+  avg_xp: number;
+  top_level: number;
+}
+
 const ManageStudents = () => {
   const { role } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
@@ -65,15 +77,71 @@ const ManageStudents = () => {
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState<Student | null>(null);
+  const [stats, setStats] = useState<StudentStats>({
+    total_students: 0,
+    active_students: 0,
+    inactive_students: 0,
+    avg_xp: 0,
+    top_level: 0
+  });
 
   useEffect(() => {
     fetchStudents();
     fetchClasses();
+    fetchStudentStats();
   }, []);
 
   const fetchClasses = async () => {
     const { data } = await supabase.from('classes').select('id, name').order('name');
     if (data) setClasses(data);
+  };
+
+  const fetchStudentStats = async () => {
+    try {
+      // Total students
+      const { count: totalStudents } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'student');
+
+      // Active students (with recent activity)
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
+      const { count: activeStudents } = await supabase
+        .from('student_progress')
+        .select('user_id', { count: 'exact', head: true })
+        .gte('created_at', oneWeekAgo.toISOString())
+        .neq('lesson_id', null);
+
+      // Average XP
+      const { data: xpData } = await supabase
+        .from('student_xp')
+        .select('total_xp');
+      
+      const avgXp = xpData && xpData.length > 0 
+        ? Math.round(xpData.reduce((sum, student) => sum + (student.total_xp || 0), 0) / xpData.length)
+        : 0;
+
+      // Top level
+      const { data: levelData } = await supabase
+        .from('student_xp')
+        .select('level')
+        .order('level', { ascending: false })
+        .limit(1);
+      
+      const topLevel = levelData && levelData.length > 0 ? levelData[0].level || 1 : 1;
+
+      setStats({
+        total_students: totalStudents || 0,
+        active_students: activeStudents || 0,
+        inactive_students: (totalStudents || 0) - (activeStudents || 0),
+        avg_xp: avgXp,
+        top_level: topLevel
+      });
+    } catch (error) {
+      console.error('Error fetching student stats:', error);
+    }
   };
 
   const fetchStudents = async () => {
@@ -82,7 +150,7 @@ const ManageStudents = () => {
       .from('user_roles')
       .select('user_id')
       .eq('role', 'student');
-    
+
     if (!studentRoles || studentRoles.length === 0) {
       setStudents([]);
       setLoading(false);
@@ -90,21 +158,21 @@ const ManageStudents = () => {
     }
 
     const studentIds = studentRoles.map(r => r.user_id);
-    
+
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, full_name, avatar_url, created_at');
-    
+
     const { data: xpData } = await supabase
       .from('student_xp')
       .select('user_id, total_xp, level')
       .in('user_id', studentIds);
-    
+
     const { data: streaks } = await supabase
       .from('streaks')
       .select('user_id, current_streak')
       .in('user_id', studentIds);
-    
+
     const { data: enrollments } = await supabase
       .from('enrollments')
       .select('student_id')
@@ -151,32 +219,32 @@ const ManageStudents = () => {
       .select('total_xp, level')
       .eq('user_id', student.user_id)
       .maybeSingle();
-    
+
     const { data: streak } = await supabase
       .from('streaks')
       .select('current_streak, longest_streak')
       .eq('user_id', student.user_id)
       .maybeSingle();
-    
+
     const { count: badgesCount } = await supabase
       .from('student_badges')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', student.user_id);
-    
+
     const { count: completedLessons } = await supabase
       .from('student_progress')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', student.user_id)
       .eq('completed', true)
       .not('lesson_id', 'is', null);
-    
+
     const { count: completedExercises } = await supabase
       .from('student_progress')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', student.user_id)
       .eq('completed', true)
       .not('exercise_id', 'is', null);
-    
+
     const { data: enrollments } = await supabase
       .from('enrollments')
       .select('class_id, classes(name)')
@@ -184,7 +252,6 @@ const ManageStudents = () => {
       .eq('status', 'approved');
 
     const enrollmentDetails: { class_name: string; course_titles: string[] }[] = [];
-    
     for (const e of enrollments || []) {
       const cls = (e as any).classes;
       const { data: classCourses } = await supabase
@@ -210,7 +277,7 @@ const ManageStudents = () => {
       completed_exercises: completedExercises || 0,
       enrollments: enrollmentDetails,
     });
-    
+
     setDetailDialogOpen(true);
   };
 
@@ -243,7 +310,7 @@ const ManageStudents = () => {
 
   const deleteStudent = async (userId: string) => {
     if (!confirm("Tem certeza que deseja remover este aluno? Esta ação é irreversível.")) return;
-    
+
     await supabase.from('enrollments').delete().eq('student_id', userId);
     await supabase.from('enrollment_requests').delete().eq('student_id', userId);
     await supabase.from('student_progress').delete().eq('user_id', userId);
@@ -253,7 +320,7 @@ const ManageStudents = () => {
     await supabase.from('streaks').delete().eq('user_id', userId);
     await supabase.from('user_roles').delete().eq('user_id', userId);
     await supabase.from('profiles').delete().eq('user_id', userId);
-    
+
     toast.success("Aluno removido com sucesso");
     fetchStudents();
   };
@@ -287,67 +354,43 @@ const ManageStudents = () => {
           </div>
         </div>
       </header>
+
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Student Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <Card className="glass border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total de Alunos</p>
-                  <p className="font-display text-2xl font-bold text-foreground">{students.length}</p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{stats.total_students}</p>
+              <p className="text-sm text-muted-foreground">Total</p>
             </CardContent>
           </Card>
-
           <Card className="glass border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-xp flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">XP Total</p>
-                  <p className="font-display text-2xl font-bold text-foreground">
-                    {students.reduce((acc, s) => acc + (s.total_xp || 0), 0)}
-                  </p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <TrendingUp className="w-8 h-8 text-success mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{stats.active_students}</p>
+              <p className="text-sm text-muted-foreground">Ativos</p>
             </CardContent>
           </Card>
-
           <Card className="glass border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-streak flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Média Nível</p>
-                  <p className="font-display text-2xl font-bold text-foreground">
-                    {students.length > 0 ? Math.round(students.reduce((acc, s) => acc + (s.level || 1), 0) / students.length) : 0}
-                  </p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <BarChart3 className="w-8 h-8 text-warning mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{stats.inactive_students}</p>
+              <p className="text-sm text-muted-foreground">Inativos</p>
             </CardContent>
           </Card>
-
           <Card className="glass border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-accent flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Matrículas</p>
-                  <p className="font-display text-2xl font-bold text-foreground">
-                    {students.reduce((acc, s) => acc + (s.enrollments_count || 0), 0)}
-                  </p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <Zap className="w-8 h-8 text-xp mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{stats.avg_xp}</p>
+              <p className="text-sm text-muted-foreground">Média XP</p>
+            </CardContent>
+          </Card>
+          <Card className="glass border-border/50">
+            <CardContent className="p-4 text-center">
+              <Trophy className="w-8 h-8 text-level mx-auto mb-2" />
+              <p className="font-display text-2xl font-bold text-foreground">{stats.top_level}</p>
+              <p className="text-sm text-muted-foreground">Nível Máx.</p>
             </CardContent>
           </Card>
         </div>
@@ -358,10 +401,18 @@ const ManageStudents = () => {
             <Input 
               placeholder="Buscar aluno por nome..." 
               className="pl-10" 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Button variant="outline">
+            <Filter className="w-4 h-4 mr-2" />
+            Filtros
+          </Button>
+          <Button className="bg-gradient-primary hover:opacity-90">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </Button>
           <Link to="/teacher/users">
             <Button className="bg-gradient-primary hover:opacity-90">
               <UserPlus className="w-4 h-4 mr-2" />
@@ -483,6 +534,7 @@ const ManageStudents = () => {
                   <p className="font-display text-xl font-bold text-foreground">{selectedStudent.longest_streak} dias</p>
                 </div>
               </div>
+              
               <div className="grid grid-cols-3 gap-4">
                 <div className="p-3 rounded-lg bg-muted/50 text-center">
                   <Trophy className="w-5 h-5 text-badge-gold mx-auto mb-1" />
@@ -500,6 +552,7 @@ const ManageStudents = () => {
                   <p className="text-xs text-muted-foreground">Exercícios</p>
                 </div>
               </div>
+
               {selectedStudent.enrollments.length > 0 && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Turmas Matriculadas</p>
@@ -551,7 +604,11 @@ const ManageStudents = () => {
               <Button variant="outline" onClick={() => setEnrollDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={confirmEnrollment} disabled={!selectedClass} className="bg-gradient-primary">
+              <Button 
+                onClick={confirmEnrollment} 
+                disabled={!selectedClass}
+                className="bg-gradient-primary"
+              >
                 Matricular
               </Button>
             </div>
