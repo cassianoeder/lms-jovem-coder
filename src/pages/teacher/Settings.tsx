@@ -22,9 +22,36 @@ const Settings = () => {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Por favor, insira um email válido');
+      return;
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
     setIsCreating(true);
     try {
-      // Create user in auth table
+      // Check if user already exists
+      const { data: existingUsers, error: fetchError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email);
+
+      if (fetchError) throw fetchError;
+
+      if (existingUsers && existingUsers.length > 0) {
+        toast.error('Já existe um usuário com este email');
+        setIsCreating(false);
+        return;
+      }
+
+      // Create user in auth table using admin API
       const { data, error } = await supabase.auth.admin.createUser({
         email,
         password,
@@ -87,7 +114,7 @@ const Settings = () => {
       }
     } catch (error: any) {
       console.error('Error creating student account:', error);
-      toast.error('Erro ao criar conta de aluno: ' + error.message);
+      toast.error('Erro ao criar conta de aluno: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setIsCreating(false);
     }
@@ -122,6 +149,7 @@ const Settings = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Nome do aluno"
+                  required
                 />
               </div>
               
@@ -133,6 +161,7 @@ const Settings = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@exemplo.com"
+                  required
                 />
               </div>
               
@@ -143,12 +172,21 @@ const Settings = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Senha segura"
+                  placeholder="Senha segura (mínimo 6 caracteres)"
+                  required
+                  minLength={6}
                 />
               </div>
               
               <Button type="submit" disabled={isCreating} className="w-full">
-                {isCreating ? 'Criando...' : 'Criar Conta de Aluno'}
+                {isCreating ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Criando...
+                  </div>
+                ) : (
+                  'Criar Conta de Aluno'
+                )}
               </Button>
             </form>
           </CardContent>

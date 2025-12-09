@@ -65,25 +65,28 @@ const StudentsManagement = () => {
           full_name,
           avatar_url,
           created_at,
-          users (
+          users:users!inner (
             email
           ),
-          student_xp (
+          student_xp:student_xp (
             total_xp,
             level
           ),
-          streaks (
+          streaks:streaks (
             current_streak,
             last_activity_date
           ),
-          enrollments (
-            class_id,
+          enrollments:enrollments (
             status,
-            classes (
+            classes:classes (
               name
             )
+          ),
+          user_roles:user_roles (
+            role
           )
         `)
+        .eq('user_roles.role', 'student')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -111,7 +114,7 @@ const StudentsManagement = () => {
       setFilteredStudents(transformedStudents);
     } catch (error) {
       console.error('Error fetching students:', error);
-      toast.error('Erro ao carregar alunos');
+      toast.error('Erro ao carregar alunos: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -120,7 +123,10 @@ const StudentsManagement = () => {
   const handleResetPassword = async (userId: string, email: string) => {
     try {
       // Send password reset email
-      const { error } = await supabase.auth.admin.resetPasswordForUser(userId);
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email
+      });
       
       if (error) throw error;
       
