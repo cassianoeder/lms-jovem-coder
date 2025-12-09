@@ -116,13 +116,13 @@ const MyCertificates = () => {
             {certificates.map((cert) => (
               <Card key={cert.id} className="glass border-border/50 border-badge-gold/30 hover:border-badge-gold/50 transition-colors">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-xp flex items-center justify-center">
+                  <div className="flex items-center gap-2 mb-2 flex-col sm:flex-row sm:items-start"> {/* Adjusted for responsiveness */}
+                    <div className="w-10 h-10 rounded-full bg-gradient-xp flex items-center justify-center shrink-0"> {/* Added shrink-0 */}
                       <Award className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{cert.course_name}</CardTitle>
-                      <CardDescription>
+                      <CardTitle className="text-lg text-center sm:text-left">{cert.course_name}</CardTitle> {/* Adjusted for responsiveness */}
+                      <CardDescription className="text-center sm:text-left"> {/* Adjusted for responsiveness */}
                         Emitido em {new Date(cert.issued_at).toLocaleDateString('pt-BR')}
                       </CardDescription>
                     </div>
@@ -130,7 +130,7 @@ const MyCertificates = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50 flex-wrap gap-2"> {/* Adjusted for responsiveness */}
                       <div>
                         <p className="text-xs text-muted-foreground">Código de Validação</p>
                         <p className="font-mono font-bold text-foreground">{cert.validation_code}</p>
@@ -148,7 +148,7 @@ const MyCertificates = () => {
                       </Button>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap"> {/* Adjusted for responsiveness */}
                       {cert.hours_load && (
                         <Badge variant="secondary" className="bg-accent/10 text-accent">
                           {cert.hours_load}h
@@ -161,7 +161,7 @@ const MyCertificates = () => {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
                       {cert.pdf_url ? (
                         <Button 
                           className="flex-1 bg-gradient-primary hover:opacity-90"
@@ -181,7 +181,7 @@ const MyCertificates = () => {
                       )}
                       
                       <Link to={`/certificate/validate/${cert.validation_code}`}>
-                        <Button variant="outline">
+                        <Button variant="outline" className="w-full sm:w-auto"> {/* Adjusted for responsiveness */}
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       </Link>

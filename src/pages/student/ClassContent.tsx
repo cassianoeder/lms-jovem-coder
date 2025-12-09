@@ -256,7 +256,7 @@ const ClassContent = () => {
             <Button variant="outline" size="icon"><ArrowLeft className="w-5 h-5 text-foreground" /></Button>
           </Link>
           <div>
-            <h1 className="font-display text-lg font-bold text-foreground">{classData?.name}</h1>
+            <h1 className="font-display text-lg font-bold text-foreground line-clamp-1">{classData?.name}</h1>
             <p className="text-sm text-muted-foreground">
               {courses.length} curso(s) vinculado(s)
             </p>
@@ -354,7 +354,7 @@ const ClassContent = () => {
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="px-4 pb-4">
-                            <div className="space-y-2 ml-16">
+                            <div className="space-y-2 pl-4 sm:pl-16"> {/* Adjusted padding for mobile */}
                               {moduleLessons.map((lesson, lessonIndex) => {
                                 const isAccessible = isLessonAccessible(lesson, moduleLessons);
                                 const completed = isLessonCompleted(lesson.id);
@@ -420,7 +420,7 @@ const ClassContent = () => {
                                     </div>
 
                                     {lessonExercises.length > 0 && (
-                                      <div className="ml-11 space-y-1">
+                                      <div className="pl-7 space-y-1"> {/* Adjusted padding for mobile */}
                                         {lessonExercises.map((exercise, exIndex) => {
                                           const exCompleted = isExerciseCompleted(exercise.id);
                                           // Exercise is accessible if lesson is accessible and all previous exercises are completed

@@ -47,6 +47,7 @@ const MyClasses = () => {
       const { data: enrollmentsData } = await supabase
         .from('enrollments')
         .select('id, class_id, status, classes(id, name, description)')
+        .eq('student_id', user.id)
         .eq('status', 'approved');
 
       if (enrollmentsData && enrollmentsData.length > 0) {
@@ -197,7 +198,7 @@ const MyClasses = () => {
               return (
                 <Card key={enrollment.id} className="glass border-border/50 hover:border-primary/30 transition-colors">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2"> {/* Adjusted for responsiveness */}
                       <Badge variant="secondary" className="bg-primary/10 text-primary">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Matriculado
@@ -233,7 +234,7 @@ const MyClasses = () => {
                       </div>
                       <Progress value={progressPercent} className="h-2" />
                       {p && (
-                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:gap-4 mt-2 text-xs text-muted-foreground"> {/* Adjusted for responsiveness */}
                           <span>{p.completedLessons}/{p.totalLessons} aulas</span>
                           <span>{p.completedExercises}/{p.totalExercises} exercícios</span>
                         </div>

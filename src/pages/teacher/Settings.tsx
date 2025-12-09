@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } => "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -212,13 +212,13 @@ const Settings = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="certificates">
-          <TabsList className="mb-6">
-            <TabsTrigger value="certificates">
+          <TabsList className="mb-6 flex flex-wrap h-auto"> {/* Adjusted for responsiveness */}
+            <TabsTrigger value="certificates" className="flex-1 sm:flex-none"> {/* Adjusted for responsiveness */}
               <Award className="w-4 h-4 mr-2" />
               Certificados
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="platform">
+              <TabsTrigger value="platform" className="flex-1 sm:flex-none"> {/* Adjusted for responsiveness */}
                 <Building className="w-4 h-4 mr-2" />
                 Plataforma
               </TabsTrigger>
@@ -226,14 +226,14 @@ const Settings = () => {
           </TabsList>
 
           <TabsContent value="certificates">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6"> {/* Adjusted for responsiveness */}
               <div>
                 <h2 className="font-display text-xl font-bold text-foreground">Modelos de Certificados</h2>
                 <p className="text-muted-foreground text-sm">Configure os requisitos e aparência dos certificados</p>
               </div>
               <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetTemplateForm(); }}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-primary hover:opacity-90">
+                  <Button className="bg-gradient-primary hover:opacity-90 mt-4 sm:mt-0"> {/* Added margin for mobile */}
                     <Plus className="w-4 h-4 mr-2" />Novo Modelo
                   </Button>
                 </DialogTrigger>
@@ -256,7 +256,7 @@ const Settings = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"> {/* Adjusted for responsiveness */}
                       <div>
                         <Label>Nota Mínima (%)</Label>
                         <Input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} min={0} max={100} />
@@ -301,48 +301,50 @@ const Settings = () => {
               </Card>
             ) : (
               <Card className="glass border-border/50">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Nota Mín.</TableHead>
-                      <TableHead>Freq. Mín.</TableHead>
-                      <TableHead>Carga Horária</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {templates.map((template) => (
-                      <TableRow key={template.id}>
-                        <TableCell className="font-medium">{template.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{template.type === 'course' ? 'Curso' : 'Módulo'}</Badge>
-                        </TableCell>
-                        <TableCell>{template.min_score}%</TableCell>
-                        <TableCell>{template.min_attendance}%</TableCell>
-                        <TableCell>{template.hours_load}h</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={template.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}>
-                            {template.is_active ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button size="sm" variant="ghost" onClick={() => toggleTemplateActive(template)}>
-                            {template.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleEditTemplate(template)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteTemplate(template.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto"> {/* Added overflow-x-auto for table responsiveness */}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Nota Mín.</TableHead>
+                        <TableHead>Freq. Mín.</TableHead>
+                        <TableHead>Carga Horária</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {templates.map((template) => (
+                        <TableRow key={template.id}>
+                          <TableCell className="font-medium">{template.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{template.type === 'course' ? 'Curso' : 'Módulo'}</Badge>
+                          </TableCell>
+                          <TableCell>{template.min_score}%</TableCell>
+                          <TableCell>{template.min_attendance}%</TableCell>
+                          <TableCell>{template.hours_load}h</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={template.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}>
+                              {template.is_active ? "Ativo" : "Inativo"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
+                            <Button size="sm" variant="ghost" onClick={() => toggleTemplateActive(template)}>
+                              {template.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleEditTemplate(template)}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteTemplate(template.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </Card>
             )}
           </TabsContent>
@@ -358,7 +360,7 @@ const Settings = () => {
                   <CardDescription>Personalize as informações da sua plataforma</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Adjusted for responsiveness */}
                     <div>
                       <Label>Nome da Plataforma</Label>
                       <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />

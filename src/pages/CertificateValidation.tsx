@@ -63,7 +63,7 @@ const CertificateValidation = () => {
           <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
             <Award className="w-7 h-7 text-primary-foreground" />
           </div>
-          <span className="font-display text-2xl font-bold text-foreground">Validação de Certificado</span>
+          <span className="font-display text-xl sm:text-2xl font-bold text-foreground">Validação de Certificado</span> {/* Adjusted text size for mobile */}
         </Link>
 
         {error ? (
@@ -83,29 +83,29 @@ const CertificateValidation = () => {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-xp flex items-center justify-center">
                 <Award className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-2xl">{certificate?.course_name}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">{certificate?.course_name}</CardTitle> {/* Adjusted text size for mobile */}
               <CardDescription>Certificado de Conclusão</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
                 <p className="text-sm text-muted-foreground">Emitido para:</p>
-                <p className="font-display text-lg font-bold text-foreground">{certificate?.student_name}</p>
+                <p className="font-display text-lg sm:text-xl font-bold text-foreground">{certificate?.student_name}</p> {/* Adjusted text size for mobile */}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                   <p className="text-xs text-muted-foreground">Carga Horária</p>
-                  <p className="font-bold text-foreground">{certificate?.hours_load || 0}h</p>
+                  <p className="font-bold text-base sm:text-lg text-foreground">{certificate?.hours_load || 0}h</p> {/* Adjusted text size for mobile */}
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                   <p className="text-xs text-muted-foreground">Nota Final</p>
-                  <p className="font-bold text-foreground">{certificate?.score || 0}%</p>
+                  <p className="font-bold text-base sm:text-lg text-foreground">{certificate?.score || 0}%</p> {/* Adjusted text size for mobile */}
                 </div>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                 <p className="text-xs text-muted-foreground">Código de Validação</p>
-                <p className="font-mono font-bold text-foreground">{certificate?.validation_code}</p>
+                <p className="font-mono font-bold text-base sm:text-lg text-foreground">{certificate?.validation_code}</p> {/* Adjusted text size for mobile */}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
                 {certificate?.pdf_url ? (
                   <a href={certificate.pdf_url} target="_blank" rel="noopener noreferrer" className="flex-1">
                     <Button className="w-full bg-gradient-primary hover:opacity-90">
@@ -120,7 +120,7 @@ const CertificateValidation = () => {
                   </Button>
                 )}
                 <Link to="/student/certificates">
-                  <Button variant="outline" title="Voltar aos meus certificados">
+                  <Button variant="outline" className="w-full sm:w-auto" title="Voltar aos meus certificados"> {/* Adjusted for responsiveness */}
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                 </Link>

@@ -362,7 +362,7 @@ const LessonView = () => {
 
   if (!isAccessible) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4"> {/* Added padding for mobile */}
         <Card className="glass border-border/50 max-w-md">
           <CardContent className="py-12 text-center">
             <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -418,9 +418,9 @@ const LessonView = () => {
         {/* Lesson Info */}
         <Card className="glass border-border/50 mb-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">{lesson?.title}</CardTitle>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between flex-col sm:flex-row"> {/* Adjusted for responsiveness */}
+              <CardTitle className="text-xl mb-2 sm:mb-0">{lesson?.title}</CardTitle> {/* Adjusted for responsiveness */}
+              <div className="flex items-center gap-3 flex-wrap justify-center"> {/* Adjusted for responsiveness */}
                 {lesson?.duration_minutes && lesson.duration_minutes > 0 && (
                   <Badge variant="secondary" className="bg-muted">
                     <Clock className="w-3 h-3 mr-1" />
@@ -459,7 +459,7 @@ const LessonView = () => {
                 return (
                   <div 
                     key={exercise.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    className={`flex items-center gap-3 p-3 rounded-lg border flex-col sm:flex-row ${ /* Adjusted for responsiveness */
                       completed 
                         ? 'border-primary/50 bg-primary/5' 
                         : accessible 
@@ -467,7 +467,7 @@ const LessonView = () => {
                           : 'border-border/30 opacity-60'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${ /* Added shrink-0 */
                       completed 
                         ? 'bg-primary' 
                         : accessible 
@@ -486,25 +486,25 @@ const LessonView = () => {
                         <Lock className="w-4 h-4 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-center sm:text-left mt-2 sm:mt-0"> {/* Adjusted for responsiveness */}
                       <p className="font-medium text-sm">{exercise.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center sm:justify-start"> {/* Adjusted for responsiveness */}
                         <span>{exercise.type === 'code' ? 'Código' : 'Quiz'}</span>
                         <span>•</span>
                         <span className="text-xp">+{exercise.xp_reward} XP</span>
                       </div>
                     </div>
                     {accessible && !completed && (
-                      <Link to={`/student/exercise/${exercise.id}?lessonId=${lessonId}`}>
-                        <Button size="sm" className="bg-gradient-primary">
+                      <Link to={`/student/exercise/${exercise.id}?lessonId=${lessonId}`} className="w-full sm:w-auto mt-3 sm:mt-0"> {/* Adjusted for responsiveness */}
+                        <Button size="sm" className="bg-gradient-primary w-full"> {/* Adjusted width for mobile */}
                           Iniciar
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
                       </Link>
                     )}
                     {completed && (
-                      <Link to={`/student/exercise/${exercise.id}?lessonId=${lessonId}`}>
-                        <Button size="sm" variant="outline">
+                      <Link to={`/student/exercise/${exercise.id}?lessonId=${lessonId}`} className="w-full sm:w-auto mt-3 sm:mt-0"> {/* Adjusted for responsiveness */}
+                        <Button size="sm" variant="outline" className="w-full"> {/* Adjusted width for mobile */}
                           Revisar
                         </Button>
                       </Link>

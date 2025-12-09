@@ -298,23 +298,21 @@ const ManageModules = () => {
             </DialogContent>
           </Dialog>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {modules.length === 0 ? (
-          <Card className="glass border-border/50">
-            <CardContent className="py-12 text-center">
-              <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum módulo cadastrado</p>
-              <p className="text-sm text-muted-foreground mt-1">Crie cursos primeiro para depois adicionar módulos</p>
-              <Button className="mt-4 bg-gradient-accent" onClick={() => setIsDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />Criar Primeiro Módulo
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(modulesByCourse).map(([courseName, courseModules]) => (
+        <div className="space-y-8">
+          {modules.length === 0 ? (
+            <Card className="glass border-border/50">
+              <CardContent className="py-12 text-center">
+                <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Nenhum módulo cadastrado</p>
+                <p className="text-sm text-muted-foreground mt-1">Crie cursos primeiro para depois adicionar módulos</p>
+                <Button className="mt-4 bg-gradient-accent" onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />Criar Primeiro Módulo
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            Object.entries(modulesByCourse).map(([courseName, courseModules]) => (
               <div key={courseName}>
                 <h2 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-primary" />
@@ -324,11 +322,11 @@ const ManageModules = () => {
                   {courseModules.map((mod) => (
                     <Card key={mod.id} className={`glass border-border/50 hover:border-primary/30 transition-colors ${!mod.is_active ? 'opacity-60' : ''}`}>
                       <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between flex-col sm:flex-row sm:items-center"> {/* Adjusted for responsiveness */}
                           <Badge variant="secondary" className={mod.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}>
                             {mod.is_active ? "Ativo" : "Inativo"}
                           </Badge>
-                          <span className="text-sm text-muted-foreground">Ordem: {mod.order_index}</span>
+                          <span className="text-sm text-muted-foreground mt-2 sm:mt-0">Ordem: {mod.order_index}</span> {/* Added margin for mobile */}
                         </div>
                         <CardTitle className="text-lg mt-2">{mod.title}</CardTitle>
                         {mod.description && (

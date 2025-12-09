@@ -118,7 +118,7 @@ const Landing = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           {/* LOGO - JOVEMCODER MODERNO */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 flex items-center justify-center shadow-xl relative overflow-hidden group hover:scale-105 transition-transform">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 flex items-center justify-center shadow-xl relative overflow-hidden group hover:scale-105 transition-transform">
               {/* Background gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
               

@@ -206,14 +206,14 @@ const ManageClasses = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"> {/* Adjusted for responsiveness */}
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Turmas</h1>
             <p className="text-muted-foreground">{classes.length} turmas cadastradas</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:opacity-90">
+              <Button className="bg-gradient-primary hover:opacity-90 mt-4 sm:mt-0"> {/* Added margin for mobile */}
                 <Plus className="w-4 h-4 mr-2" />Nova Turma
               </Button>
             </DialogTrigger>
@@ -302,7 +302,7 @@ const ManageClasses = () => {
             <CardContent>
               <div className="space-y-3">
                 {enrollmentRequests.map((request) => (
-                  <div key={request.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-border/50">
+                  <div key={request.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-card border border-border/50"> {/* Adjusted for responsiveness */}
                     <div>
                       <p className="font-medium">{request.profiles?.full_name}</p>
                       <p className="text-sm text-muted-foreground">
@@ -312,7 +312,7 @@ const ManageClasses = () => {
                         <p className="text-sm text-muted-foreground mt-1">"{request.message}"</p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-3 sm:mt-0"> {/* Added margin for mobile */}
                       <Button size="sm" onClick={() => handleApproveRequest(request.id, request.class_id, request.student_id)}>
                         Aprovar
                       </Button>

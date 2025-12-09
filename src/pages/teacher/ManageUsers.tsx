@@ -315,7 +315,7 @@ const ManageUsers = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"> {/* Adjusted for responsiveness */}
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Usuários</h1>
             <p className="text-muted-foreground">
@@ -328,7 +328,7 @@ const ManageUsers = () => {
             if (!open) resetForm(); 
           }}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:opacity-90">
+              <Button className="bg-gradient-primary hover:opacity-90 mt-4 sm:mt-0"> {/* Added margin for mobile */}
                 <UserPlus className="w-4 h-4 mr-2" />
                 Novo Usuário
               </Button>
@@ -423,7 +423,7 @@ const ManageUsers = () => {
 
         {/* Tabs para diferentes tipos de usuários */}
         <Tabs defaultValue="students" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto"> {/* Adjusted for responsiveness */}
             <TabsTrigger value="students">Alunos ({students.length})</TabsTrigger>
             <TabsTrigger value="teachers">Professores ({teachers.length})</TabsTrigger>
             <TabsTrigger value="coordinators">Coordenadores ({coordinators.length})</TabsTrigger>
@@ -436,7 +436,7 @@ const ManageUsers = () => {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   {students.length > 0 ? students.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                    <div key={user.user_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl bg-card border border-border/50"> {/* Adjusted for responsiveness */}
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                           <User className="w-5 h-5 text-primary" />
@@ -449,7 +449,7 @@ const ManageUsers = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap gap-2 mt-3 sm:mt-0 sm:justify-end"> {/* Adjusted for responsiveness */}
                         <Badge className={getRoleBadgeClass(user.role)}>
                           {getRoleLabel(user.role)}
                         </Badge>
@@ -501,7 +501,7 @@ const ManageUsers = () => {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   {teachers.length > 0 ? teachers.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                    <div key={user.user_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl bg-card border border-border/50"> {/* Adjusted for responsiveness */}
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
                           <BookOpen className="w-5 h-5 text-accent" />
@@ -511,7 +511,7 @@ const ManageUsers = () => {
                           <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap gap-2 mt-3 sm:mt-0 sm:justify-end"> {/* Adjusted for responsiveness */}
                         <Badge className={getRoleBadgeClass(user.role)}>
                           {getRoleLabel(user.role)}
                         </Badge>
@@ -563,7 +563,7 @@ const ManageUsers = () => {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   {coordinators.length > 0 ? coordinators.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                    <div key={user.user_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl bg-card border border-border/50"> {/* Adjusted for responsiveness */}
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-level/20 flex items-center justify-center">
                           <Shield className="w-5 h-5 text-level" />
@@ -573,7 +573,7 @@ const ManageUsers = () => {
                           <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap gap-2 mt-3 sm:mt-0 sm:justify-end"> {/* Adjusted for responsiveness */}
                         <Badge className={getRoleBadgeClass(user.role)}>
                           {getRoleLabel(user.role)}
                         </Badge>
@@ -625,7 +625,7 @@ const ManageUsers = () => {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   {admins.length > 0 ? admins.map((user) => (
-                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                    <div key={user.user_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl bg-card border border-border/50"> {/* Adjusted for responsiveness */}
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-badge-gold/20 flex items-center justify-center">
                           <Crown className="w-5 h-5 text-badge-gold" />
@@ -635,7 +635,7 @@ const ManageUsers = () => {
                           <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap gap-2 mt-3 sm:mt-0 sm:justify-end"> {/* Adjusted for responsiveness */}
                         <Badge className={getRoleBadgeClass(user.role)}>
                           {getRoleLabel(user.role)}
                         </Badge>

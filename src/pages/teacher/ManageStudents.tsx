@@ -352,8 +352,8 @@ const ManageStudents = () => {
           </Card>
         </div>
 
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6"> {/* Adjusted for responsiveness */}
+          <div className="relative flex-1 max-w-md w-full"> {/* Added w-full */}
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar aluno por nome..." 
@@ -362,8 +362,8 @@ const ManageStudents = () => {
               onChange={(e) => setSearchQuery(e.target.value)} 
             />
           </div>
-          <Link to="/teacher/users">
-            <Button className="bg-gradient-primary hover:opacity-90">
+          <Link to="/teacher/users" className="w-full sm:w-auto"> {/* Added w-full sm:w-auto */}
+            <Button className="bg-gradient-primary hover:opacity-90 w-full"> {/* Added w-full */}
               <UserPlus className="w-4 h-4 mr-2" />
               Criar Novo Aluno
             </Button>
@@ -384,72 +384,74 @@ const ManageStudents = () => {
           </Card>
         ) : (
           <Card className="glass border-border/50">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead>Nível</TableHead>
-                  <TableHead>XP</TableHead>
-                  <TableHead>Streak</TableHead>
-                  <TableHead>Turmas</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.user_id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="font-medium text-primary">
-                            {student.full_name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium">{student.full_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Desde {new Date(student.created_at).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-level/10 text-level">
-                        Nível {student.level || 1}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1 text-xp">
-                        <Zap className="w-4 h-4" />
-                        {student.total_xp || 0}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-streak">{student.current_streak || 0} dias</span>
-                    </TableCell>
-                    <TableCell>{student.enrollments_count || 0}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => viewStudentDetails(student)}>
-                        <Eye className="w-4 h-4 mr-1" />Detalhes
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleEnrollStudent(student)}>
-                        <Plus className="w-4 h-4 mr-1" />Turma
-                      </Button>
-                      {role === 'admin' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="text-destructive" 
-                          onClick={() => deleteStudent(student.user_id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-auto"> {/* Added overflow-x-auto for table responsiveness */}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Aluno</TableHead>
+                    <TableHead>Nível</TableHead>
+                    <TableHead>XP</TableHead>
+                    <TableHead>Streak</TableHead>
+                    <TableHead>Turmas</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredStudents.map((student) => (
+                    <TableRow key={student.user_id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="font-medium text-primary">
+                              {student.full_name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{student.full_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Desde {new Date(student.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="bg-level/10 text-level">
+                          Nível {student.level || 1}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex items-center gap-1 text-xp">
+                          <Zap className="w-4 h-4" />
+                          {student.total_xp || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-streak">{student.current_streak || 0} dias</span>
+                      </TableCell>
+                      <TableCell>{student.enrollments_count || 0}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button size="sm" variant="outline" onClick={() => viewStudentDetails(student)}>
+                          <Eye className="w-4 h-4 mr-1" />Detalhes
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleEnrollStudent(student)}>
+                          <Plus className="w-4 h-4 mr-1" />Turma
+                        </Button>
+                        {role === 'admin' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-destructive" 
+                            onClick={() => deleteStudent(student.user_id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         )}
       </main>

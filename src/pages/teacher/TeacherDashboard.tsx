@@ -64,18 +64,20 @@ const TeacherDashboard = () => {
               <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center">
                 <Code2 className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-display text-lg font-bold text-foreground">JovemCoder</span>
+              <span className="font-display text-lg font-bold text-foreground hidden sm:inline">JovemCoder</span> {/* Hidden on small screens */}
             </Link>
-            <Badge variant="secondary" className="bg-accent/10 text-accent">{isAdmin ? "Admin" : "Professor"}</Badge>
+            <Badge variant="secondary" className="bg-accent/10 text-accent">
+              {isAdmin ? "Admin" : "Professor"}
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/">
-              <Button variant="outline" size="icon" title="Página inicial">
-                <Home className="w-5 h-5 text-foreground" />
+              <Button variant="outline" size="icon" title="Página inicial" className="w-8 h-8 sm:w-9 sm:h-9"> {/* Adjusted button size for mobile */}
+                <Home className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" /> {/* Adjusted icon size for mobile */}
               </Button>
             </Link>
-            <Button variant="outline" size="icon" onClick={signOut} title="Sair">
-              <LogOut className="w-5 h-5 text-foreground" />
+            <Button variant="outline" size="icon" onClick={signOut} title="Sair" className="w-8 h-8 sm:w-9 sm:h-9"> {/* Adjusted button size for mobile */}
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" /> {/* Adjusted icon size for mobile */}
             </Button>
           </div>
         </div>
@@ -83,27 +85,29 @@ const TeacherDashboard = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold text-foreground mb-2">Olá, {profile?.full_name?.split(" ")[0]}! 📚</h1>
-          <p className="text-muted-foreground">Gerencie conteúdo e acompanhe seus alunos.</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2"> {/* Adjusted text size for mobile */}
+            Olá, {profile?.full_name?.split(" ")[0]}! 📚
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gerencie conteúdo e acompanhe seus alunos.</p> {/* Adjusted text size for mobile */}
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"> {/* Adjusted grid for responsiveness */}
           {menuItems.map((item) => (
             <Link key={item.href} to={item.href}>
               <Card className="glass border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
                   <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-xl ${item.color} flex items-center justify-center relative`}>
-                      <item.icon className="w-7 h-7 text-white" />
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${item.color} flex items-center justify-center relative`}> {/* Adjusted size for mobile */}
+                      <item.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> {/* Adjusted icon size for mobile */}
                       {item.badge && (
-                        <span className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                        <span className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center"> {/* Adjusted size for mobile */}
                           {item.badge}
                         </span>
                       )}
                     </div>
                     <div>
-                      <p className="font-display text-2xl font-bold text-foreground">{item.count}</p>
-                      <p className="text-muted-foreground">{item.label}</p>
+                      <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{item.count}</p> {/* Adjusted text size for mobile */}
+                      <p className="text-sm sm:text-base text-muted-foreground">{item.label}</p> {/* Adjusted text size for mobile */}
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
@@ -113,18 +117,18 @@ const TeacherDashboard = () => {
           ))}
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"> {/* Adjusted grid for responsiveness */}
           {/* Gerenciar Alunos */}
           <Link to="/teacher/students">
             <Card className="glass border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-primary flex items-center justify-center">
-                    <Users className="w-7 h-7 text-white" />
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-primary flex items-center justify-center"> {/* Adjusted size for mobile */}
+                    <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> {/* Adjusted icon size for mobile */}
                   </div>
                   <div>
-                    <p className="font-display text-2xl font-bold text-foreground">{stats.students}</p>
-                    <p className="text-muted-foreground">Alunos</p>
+                    <p className="font-display text-xl sm:text-2xl font-bold text-foreground">{stats.students}</p> {/* Adjusted text size for mobile */}
+                    <p className="text-sm sm:text-base text-muted-foreground">Alunos</p> {/* Adjusted text size for mobile */}
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
@@ -136,14 +140,14 @@ const TeacherDashboard = () => {
           {isAdmin && (
             <Link to="/teacher/users">
               <Card className="glass border-border/50 border-badge-gold/30 hover:border-badge-gold/50 transition-all cursor-pointer group">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6"> {/* Adjusted padding for mobile */}
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-xp flex items-center justify-center">
-                      <UserCog className="w-7 h-7 text-white" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-xp flex items-center justify-center"> {/* Adjusted size for mobile */}
+                      <UserCog className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> {/* Adjusted icon size for mobile */}
                     </div>
                     <div>
-                      <p className="font-display text-2xl font-bold text-foreground">Gerenciar</p>
-                      <p className="text-muted-foreground">Usuários</p>
+                      <p className="font-display text-xl sm:text-2xl font-bold text-foreground">Gerenciar</p> {/* Adjusted text size for mobile */}
+                      <p className="text-sm sm:text-base text-muted-foreground">Usuários</p> {/* Adjusted text size for mobile */}
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
@@ -154,14 +158,14 @@ const TeacherDashboard = () => {
 
           <Card className="glass border-border/50">
             <CardHeader className="pb-2">
-              <CardTitle className="font-display flex items-center gap-2 text-base">
+              <CardTitle className="font-display flex items-center gap-2 text-base sm:text-lg"> {/* Adjusted text size for mobile */}
                 <Settings className="w-5 h-5 text-accent" />
                 Configurações
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Link to="/teacher/settings">
-                <Button variant="outline" className="w-full justify-between">
+                <Button variant="outline" className="w-full justify-between text-sm sm:text-base"> {/* Adjusted text size for mobile */}
                   <span className="flex items-center gap-2">
                     <Award className="w-4 h-4" />
                     Certificados e Plataforma
