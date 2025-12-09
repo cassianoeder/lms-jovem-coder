@@ -43,63 +43,46 @@ const AvailableClasses = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchData = async () => {
-    if (!user) return;
-    
     setLoading(true);
-    try {
-      const [classesRes, requestsRes, enrollmentsRes] = await Promise.all([
-        supabase.from('classes').select('*, courses(title)').eq('is_public', true).order('name'),
-        supabase.from('enrollment_requests').select('id, class_id, status').eq('student_id', user.id),
-        supabase.from('enrollments').select('id, class_id, status').eq('student_id', user.id),
-      ]);
+    const [classesRes, requestsRes, enrollmentsRes] = await Promise.all([
+      supabase.from('classes').select('*, courses(title)').eq('is_public', true).order('name'),
+      supabase.from('enrollment_requests').select('id, class_id, status'),
+      supabase.from('enrollments').select('id, class_id, status'),
+    ]);
 
-      if (classesRes.error) throw classesRes.error;
-      if (requestsRes.error) throw requestsRes.error;
-      if (enrollmentsRes.error) throw enrollmentsRes.error;
-
-      if (classesRes.data) setClasses(classesRes.data as Class[]);
-      if (requestsRes.data) setMyRequests(requestsRes.data);
-      if (enrollmentsRes.data) setMyEnrollments(enrollmentsRes.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error("Erro ao carregar turmas");
-    } finally {
-      setLoading(false);
-    }
+    if (classesRes.data) setClasses(classesRes.data as Class[]);
+    if (requestsRes.data) setMyRequests(requestsRes.data);
+    if (enrollmentsRes.data) setMyEnrollments(enrollmentsRes.data);
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, []);
 
   const handleRequestEnrollment = async () => {
     if (!selectedClass || !user) return;
 
-    try {
-      const { error } = await supabase.from('enrollment_requests').insert({
-        student_id: user.id,
-        class_id: selectedClass.id,
-        message: message || null,
-      });
+    const { error } = await supabase.from('enrollment_requests').insert({
+      student_id: user.id,
+      class_id: selectedClass.id,
+      message: message || null,
+    });
 
-      if (error) {
-        if (error.code === '23505') {
-          toast.error("Você já solicitou entrada nesta turma");
-        } else {
-          toast.error("Erro ao solicitar entrada: " + error.message);
-        }
-        return;
+    if (error) {
+      if (error.code === '23505') {
+        toast.error("Você já solicitou entrada nesta turma");
+      } else {
+        toast.error("Erro ao solicitar entrada");
       }
-
-      toast.success("Solicitação enviada! Aguarde aprovação do professor.");
-      setDialogOpen(false);
-      setMessage("");
-      setSelectedClass(null);
-      fetchData();
-    } catch (error: any) {
-      console.error('Error requesting enrollment:', error);
-      toast.error("Erro ao solicitar entrada: " + error.message);
+      return;
     }
+
+    toast.success("Solicitação enviada! Aguarde aprovação do professor.");
+    setDialogOpen(false);
+    setMessage("");
+    setSelectedClass(null);
+    fetchData();
   };
 
   const getClassStatus = (classId: string) => {

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { 
   ArrowLeft, Users, Search, Eye, Trash2, Shield, BookOpen, Zap, Trophy, 
   TrendingUp, Code2, Mail, Plus, UserPlus, BarChart3, PieChart, Download,
-  Filter, Calendar, User
+  Filter, Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,7 +67,7 @@ interface StudentStats {
 }
 
 const ManageStudents = () => {
-  const { role, user } = useAuth();
+  const { role } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +75,6 @@ const ManageStudents = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
-  const [createStudentDialogOpen, setCreateStudentDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState<Student | null>(null);
   const [stats, setStats] = useState<StudentStats>({
@@ -86,12 +85,6 @@ const ManageStudents = () => {
     top_level: 0
   });
 
-  // Form states for creating new student
-  const [newStudentName, setNewStudentName] = useState("");
-  const [newStudentEmail, setNewStudentEmail] = useState("");
-  const [newStudentPassword, setNewStudentPassword] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-
   useEffect(() => {
     fetchStudents();
     fetchClasses();
@@ -99,57 +92,44 @@ const ManageStudents = () => {
   }, []);
 
   const fetchClasses = async () => {
-    const { data, error } = await supabase.from('classes').select('id, name').order('name');
-    if (error) {
-      console.error('Error fetching classes:', error);
-      toast.error("Erro ao carregar turmas");
-    } else {
-      setClasses(data || []);
-    }
+    const { data } = await supabase.from('classes').select('id, name').order('name');
+    if (data) setClasses(data);
   };
 
   const fetchStudentStats = async () => {
     try {
       // Total students
-      const { count: totalStudents, error: totalError } = await supabase
+      const { count: totalStudents } = await supabase
         .from('user_roles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'student');
-
-      if (totalError) throw totalError;
 
       // Active students (with recent activity)
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
-      const { count: activeStudents, error: activeError } = await supabase
+      const { count: activeStudents } = await supabase
         .from('student_progress')
         .select('user_id', { count: 'exact', head: true })
         .gte('created_at', oneWeekAgo.toISOString())
         .neq('lesson_id', null);
 
-      if (activeError) throw activeError;
-
       // Average XP
-      const { data: xpData, error: xpError } = await supabase
+      const { data: xpData } = await supabase
         .from('student_xp')
         .select('total_xp');
       
-      if (xpError) throw xpError;
-
       const avgXp = xpData && xpData.length > 0 
         ? Math.round(xpData.reduce((sum, student) => sum + (student.total_xp || 0), 0) / xpData.length)
         : 0;
 
       // Top level
-      const { data: levelData, error: levelError } = await supabase
+      const { data: levelData } = await supabase
         .from('student_xp')
         .select('level')
         .order('level', { ascending: false })
         .limit(1);
       
-      if (levelError) throw levelError;
-
       const topLevel = levelData && levelData.length > 0 ? levelData[0].level || 1 : 1;
 
       setStats({
@@ -161,188 +141,144 @@ const ManageStudents = () => {
       });
     } catch (error) {
       console.error('Error fetching student stats:', error);
-      toast.error("Erro ao carregar estatísticas dos alunos");
     }
   };
 
   const fetchStudents = async () => {
     setLoading(true);
-    try {
-      // Buscar todos os usuários com role de student
-      const { data: studentRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'student');
+    const { data: studentRoles } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'student');
 
-      if (rolesError) throw rolesError;
-
-      if (!studentRoles || studentRoles.length === 0) {
-        setStudents([]);
-        setLoading(false);
-        return;
-      }
-
-      const studentIds = studentRoles.map(r => r.user_id);
-
-      // Buscar perfis dos alunos
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url, created_at')
-        .in('user_id', studentIds);
-
-      if (profilesError) throw profilesError;
-
-      // Buscar XP dos alunos
-      const { data: xpData, error: xpError } = await supabase
-        .from('student_xp')
-        .select('user_id, total_xp, level')
-        .in('user_id', studentIds);
-
-      if (xpError) throw xpError;
-
-      // Buscar streaks dos alunos
-      const { data: streaks, error: streaksError } = await supabase
-        .from('streaks')
-        .select('user_id, current_streak')
-        .in('user_id', studentIds);
-
-      if (streaksError) throw streaksError;
-
-      // Buscar matrículas dos alunos
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from('enrollments')
-        .select('student_id')
-        .eq('status', 'approved')
-        .in('student_id', studentIds);
-
-      if (enrollmentsError) throw enrollmentsError;
-
-      // Mapear dados para exibição
-      const xpMap = new Map<string, { total_xp: number; level: number }>();
-      if (xpData) {
-        xpData.forEach(x => {
-          xpMap.set(x.user_id, { total_xp: x.total_xp || 0, level: x.level || 1 });
-        });
-      }
-
-      const streakMap = new Map<string, { current_streak: number }>();
-      if (streaks) {
-        streaks.forEach(s => {
-          streakMap.set(s.user_id, { current_streak: s.current_streak || 0 });
-        });
-      }
-
-      const enrollmentCounts: Record<string, number> = {};
-      if (enrollments) {
-        enrollments.forEach(e => {
-          enrollmentCounts[e.student_id] = (enrollmentCounts[e.student_id] || 0) + 1;
-        });
-      }
-
-      const studentsData: Student[] = (profiles || []).map(p => ({
-        ...p,
-        role: 'student',
-        total_xp: xpMap.get(p.user_id)?.total_xp || 0,
-        level: xpMap.get(p.user_id)?.level || 1,
-        current_streak: streakMap.get(p.user_id)?.current_streak || 0,
-        enrollments_count: enrollmentCounts[p.user_id] || 0,
-      }));
-
-      setStudents(studentsData);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      toast.error("Erro ao carregar alunos");
-      setStudents([]); // Set empty array on error to avoid infinite loading
-    } finally {
+    if (!studentRoles || studentRoles.length === 0) {
+      setStudents([]);
       setLoading(false);
+      return;
     }
+
+    const studentIds = studentRoles.map(r => r.user_id);
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, avatar_url, created_at');
+
+    const { data: xpData } = await supabase
+      .from('student_xp')
+      .select('user_id, total_xp, level')
+      .in('user_id', studentIds);
+
+    const { data: streaks } = await supabase
+      .from('streaks')
+      .select('user_id, current_streak')
+      .in('user_id', studentIds);
+
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('student_id')
+      .eq('status', 'approved')
+      .in('student_id', studentIds);
+
+    const xpMap = new Map<string, { total_xp: number; level: number }>();
+    if (xpData) {
+      xpData.forEach(x => {
+        xpMap.set(x.user_id, { total_xp: x.total_xp || 0, level: x.level || 1 });
+      });
+    }
+
+    const streakMap = new Map<string, { current_streak: number }>();
+    if (streaks) {
+      streaks.forEach(s => {
+        streakMap.set(s.user_id, { current_streak: s.current_streak || 0 });
+      });
+    }
+
+    const enrollmentCounts: Record<string, number> = {};
+    if (enrollments) {
+      enrollments.forEach(e => {
+        enrollmentCounts[e.student_id] = (enrollmentCounts[e.student_id] || 0) + 1;
+      });
+    }
+
+    const studentsData: Student[] = (profiles || []).map(p => ({
+      ...p,
+      role: 'student',
+      total_xp: xpMap.get(p.user_id)?.total_xp || 0,
+      level: xpMap.get(p.user_id)?.level || 1,
+      current_streak: streakMap.get(p.user_id)?.current_streak || 0,
+      enrollments_count: enrollmentCounts[p.user_id] || 0,
+    }));
+
+    setStudents(studentsData);
+    setLoading(false);
   };
 
   const viewStudentDetails = async (student: Student) => {
-    try {
-      const { data: xp, error: xpError } = await supabase
-        .from('student_xp')
-        .select('total_xp, level')
-        .eq('user_id', student.user_id)
-        .maybeSingle();
+    const { data: xp } = await supabase
+      .from('student_xp')
+      .select('total_xp, level')
+      .eq('user_id', student.user_id)
+      .maybeSingle();
 
-      if (xpError) throw xpError;
+    const { data: streak } = await supabase
+      .from('streaks')
+      .select('current_streak, longest_streak')
+      .eq('user_id', student.user_id)
+      .maybeSingle();
 
-      const { data: streak, error: streakError } = await supabase
-        .from('streaks')
-        .select('current_streak, longest_streak')
-        .eq('user_id', student.user_id)
-        .maybeSingle();
+    const { count: badgesCount } = await supabase
+      .from('student_badges')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', student.user_id);
 
-      if (streakError) throw streakError;
+    const { count: completedLessons } = await supabase
+      .from('student_progress')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', student.user_id)
+      .eq('completed', true)
+      .not('lesson_id', 'is', null);
 
-      const { count: badgesCount, error: badgesError } = await supabase
-        .from('student_badges')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', student.user_id);
+    const { count: completedExercises } = await supabase
+      .from('student_progress')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', student.user_id)
+      .eq('completed', true)
+      .not('exercise_id', 'is', null);
 
-      if (badgesError) throw badgesError;
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('class_id, classes(name)')
+      .eq('student_id', student.user_id)
+      .eq('status', 'approved');
 
-      const { count: completedLessons, error: lessonsError } = await supabase
-        .from('student_progress')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', student.user_id)
-        .eq('completed', true)
-        .not('lesson_id', 'is', null);
-
-      if (lessonsError) throw lessonsError;
-
-      const { count: completedExercises, error: exercisesError } = await supabase
-        .from('student_progress')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', student.user_id)
-        .eq('completed', true)
-        .not('exercise_id', 'is', null);
-
-      if (exercisesError) throw exercisesError;
-
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from('enrollments')
-        .select('class_id, classes(name)')
-        .eq('student_id', student.user_id)
-        .eq('status', 'approved');
-
-      if (enrollmentsError) throw enrollmentsError;
-
-      const enrollmentDetails: { class_name: string; course_titles: string[] }[] = [];
-      for (const e of enrollments || []) {
-        const cls = (e as any).classes;
-        const { data: classCourses, error: coursesError } = await supabase
-          .from('class_courses')
-          .select('courses(title)')
-          .eq('class_id', e.class_id);
-        
-        if (coursesError) throw coursesError;
-        
-        enrollmentDetails.push({
-          class_name: cls?.name || 'Turma',
-          course_titles: (classCourses || []).map((cc: any) => cc.courses?.title).filter(Boolean),
-        });
-      }
-
-      setSelectedStudent({
-        user_id: student.user_id,
-        full_name: student.full_name,
-        total_xp: xp?.total_xp || 0,
-        level: xp?.level || 1,
-        current_streak: streak?.current_streak || 0,
-        longest_streak: streak?.longest_streak || 0,
-        badges_count: badgesCount || 0,
-        completed_lessons: completedLessons || 0,
-        completed_exercises: completedExercises || 0,
-        enrollments: enrollmentDetails,
+    const enrollmentDetails: { class_name: string; course_titles: string[] }[] = [];
+    for (const e of enrollments || []) {
+      const cls = (e as any).classes;
+      const { data: classCourses } = await supabase
+        .from('class_courses')
+        .select('courses(title)')
+        .eq('class_id', e.class_id);
+      
+      enrollmentDetails.push({
+        class_name: cls?.name || 'Turma',
+        course_titles: (classCourses || []).map((cc: any) => cc.courses?.title).filter(Boolean),
       });
-
-      setDetailDialogOpen(true);
-    } catch (error) {
-      console.error('Error fetching student details:', error);
-      toast.error("Erro ao carregar detalhes do aluno");
     }
+
+    setSelectedStudent({
+      user_id: student.user_id,
+      full_name: student.full_name,
+      total_xp: xp?.total_xp || 0,
+      level: xp?.level || 1,
+      current_streak: streak?.current_streak || 0,
+      longest_streak: streak?.longest_streak || 0,
+      badges_count: badgesCount || 0,
+      completed_lessons: completedLessons || 0,
+      completed_exercises: completedExercises || 0,
+      enrollments: enrollmentDetails,
+    });
+
+    setDetailDialogOpen(true);
   };
 
   const handleEnrollStudent = async (student: Student) => {
@@ -366,82 +302,27 @@ const ManageStudents = () => {
       setEnrollDialogOpen(false);
       setSelectedStudentForEnroll(null);
       setSelectedClass("");
-      fetchStudents(); // Atualizar a lista
+      fetchStudents();
     } catch (error: any) {
-      console.error('Error enrolling student:', error);
-      toast.error("Erro ao matricular aluno: " + error.message);
+      toast.error(error.message);
     }
   };
 
   const deleteStudent = async (userId: string) => {
     if (!confirm("Tem certeza que deseja remover este aluno? Esta ação é irreversível.")) return;
 
-    try {
-      // Delete all related data
-      await supabase.from('enrollments').delete().eq('student_id', userId);
-      await supabase.from('enrollment_requests').delete().eq('student_id', userId);
-      await supabase.from('student_progress').delete().eq('user_id', userId);
-      await supabase.from('student_badges').delete().eq('user_id', userId);
-      await supabase.from('student_missions').delete().eq('user_id', userId);
-      await supabase.from('student_xp').delete().eq('user_id', userId);
-      await supabase.from('streaks').delete().eq('user_id', userId);
-      await supabase.from('user_roles').delete().eq('user_id', userId);
-      await supabase.from('profiles').delete().eq('user_id', userId);
-      
-      // Delete auth user using admin API
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      if (authError) throw authError;
+    await supabase.from('enrollments').delete().eq('student_id', userId);
+    await supabase.from('enrollment_requests').delete().eq('student_id', userId);
+    await supabase.from('student_progress').delete().eq('user_id', userId);
+    await supabase.from('student_badges').delete().eq('user_id', userId);
+    await supabase.from('student_missions').delete().eq('user_id', userId);
+    await supabase.from('student_xp').delete().eq('user_id', userId);
+    await supabase.from('streaks').delete().eq('user_id', userId);
+    await supabase.from('user_roles').delete().eq('user_id', userId);
+    await supabase.from('profiles').delete().eq('user_id', userId);
 
-      toast.success("Aluno removido com sucesso");
-      fetchStudents(); // Atualizar a lista
-      fetchStudentStats(); // Atualizar estatísticas
-    } catch (error: any) {
-      console.error('Error deleting student:', error);
-      toast.error("Erro ao remover aluno: " + error.message);
-    }
-  };
-
-  const handleCreateStudent = async () => {
-    if (!newStudentName || !newStudentEmail || !newStudentPassword) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
-    }
-
-    if (newStudentPassword.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      // Usar a função RPC para criar usuário sem login automático
-      const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: newStudentEmail,
-        p_password: newStudentPassword,
-        p_full_name: newStudentName,
-        p_role: 'student'
-      });
-
-      if (error) throw error;
-
-      toast.success("Aluno criado com sucesso!");
-      setCreateStudentDialogOpen(false);
-      resetCreateStudentForm();
-      fetchStudents(); // Atualizar a lista de alunos
-      fetchStudentStats(); // Atualizar estatísticas
-    } catch (error: any) {
-      console.error('Error creating student:', error);
-      toast.error("Erro ao criar aluno: " + error.message);
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const resetCreateStudentForm = () => {
-    setNewStudentName("");
-    setNewStudentEmail("");
-    setNewStudentPassword("");
-    setIsCreating(false);
+    toast.success("Aluno removido com sucesso");
+    fetchStudents();
   };
 
   const filteredStudents = students.filter(s => 
@@ -532,13 +413,12 @@ const ManageStudents = () => {
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
-          <Button 
-            className="bg-gradient-primary hover:opacity-90"
-            onClick={() => setCreateStudentDialogOpen(true)}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Novo Aluno
-          </Button>
+          <Link to="/teacher/users">
+            <Button className="bg-gradient-primary hover:opacity-90">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Criar Novo Aluno
+            </Button>
+          </Link>
         </div>
 
         {filteredStudents.length === 0 ? (
@@ -548,13 +428,9 @@ const ManageStudents = () => {
               <p className="text-muted-foreground">
                 {searchQuery ? "Nenhum aluno encontrado" : "Nenhum aluno cadastrado ainda"}
               </p>
-              <Button 
-                className="mt-4 bg-gradient-primary"
-                onClick={() => setCreateStudentDialogOpen(true)}
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Criar Primeiro Aluno
-              </Button>
+              <Link to="/teacher/users" className="mt-4 inline-block">
+                <Button className="bg-gradient-primary">Criar Primeiro Aluno</Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (
@@ -734,77 +610,6 @@ const ManageStudents = () => {
                 className="bg-gradient-primary"
               >
                 Matricular
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para criar novo aluno */}
-      <Dialog open={createStudentDialogOpen} onOpenChange={(open) => {
-        setCreateStudentDialogOpen(open);
-        if (!open) resetCreateStudentForm();
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Criar Novo Aluno</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome Completo *</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Nome do aluno"
-                  className="pl-10"
-                  value={newStudentName}
-                  onChange={(e) => setNewStudentName(e.target.value)}
-                  disabled={isCreating}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="email"
-                  placeholder="email@exemplo.com"
-                  className="pl-10"
-                  value={newStudentEmail}
-                  onChange={(e) => setNewStudentEmail(e.target.value)}
-                  disabled={isCreating}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Senha *</Label>
-              <Input
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={newStudentPassword}
-                onChange={(e) => setNewStudentPassword(e.target.value)}
-                minLength={6}
-                disabled={isCreating}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setCreateStudentDialogOpen(false)} disabled={isCreating}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleCreateStudent}
-                className="bg-gradient-primary"
-                disabled={isCreating}
-              >
-                {isCreating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Criando...
-                  </>
-                ) : (
-                  "Criar Aluno"
-                )}
               </Button>
             </div>
           </div>
