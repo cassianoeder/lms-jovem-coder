@@ -44,6 +44,7 @@ const ManageUsers = () => {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states
   const [newEmail, setNewEmail] = useState("");
@@ -95,9 +96,24 @@ const ManageUsers = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!isAdmin) {
       toast.error("Apenas administradores podem criar usuários");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validação básica
+    if (!newEmail || !newPassword || !newName) {
+      toast.error("Preencha todos os campos obrigatórios");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      setIsSubmitting(false);
       return;
     }
 
@@ -109,21 +125,37 @@ const ManageUsers = () => {
         p_role: newRole,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('RPC Error:', error);
+        throw error;
+      }
 
       toast.success(`Usuário ${newRole} criado com sucesso!`);
       setDialogOpen(false);
       resetForm();
       fetchUsers();
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Create user error:', error);
+      toast.error(error.message || "Erro ao criar usuário");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (!selectedUser) return;
+    if (!selectedUser) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!resetPassword || resetPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.rpc('admin_update_user_password', {
@@ -138,14 +170,20 @@ const ManageUsers = () => {
       setResetPassword("");
       setSelectedUser(null);
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Erro ao atualizar senha");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (!selectedUser) return;
+    if (!selectedUser) {
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.rpc('admin_update_user', {
@@ -163,7 +201,9 @@ const ManageUsers = () => {
       setEditRole("");
       fetchUsers();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Erro ao atualizar usuário");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -180,7 +220,7 @@ const ManageUsers = () => {
       toast.success("Usuário excluído com sucesso!");
       fetchUsers();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Erro ao excluir usuário");
     }
   };
 
@@ -189,6 +229,7 @@ const ManageUsers = () => {
     setNewPassword("");
     setNewName("");
     setNewRole("student");
+    setIsSubmitting(false);
   };
 
   const getRoleIcon = (role: string) => {
@@ -282,7 +323,10 @@ const ManageUsers = () => {
             </p>
           </div>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => { 
+            setDialogOpen(open); 
+            if (!open) resetForm(); 
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary hover:opacity-90">
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -295,38 +339,47 @@ const ManageUsers = () => {
               </DialogHeader>
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nome Completo</Label>
+                  <Label htmlFor="name">Nome Completo *</Label>
                   <Input 
+                    id="name"
                     value={newName} 
                     onChange={(e) => setNewName(e.target.value)} 
-                    required 
+                    placeholder="Nome completo do usuário"
+                    required
+                    disabled={isSubmitting}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input 
+                    id="email"
                     type="email"
                     value={newEmail} 
                     onChange={(e) => setNewEmail(e.target.value)} 
-                    required 
+                    placeholder="email@exemplo.com"
+                    required
+                    disabled={isSubmitting}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Senha</Label>
+                  <Label htmlFor="password">Senha *</Label>
                   <Input 
+                    id="password"
                     type="password"
                     value={newPassword} 
                     onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
                     minLength={6}
-                    required 
+                    required
+                    disabled={isSubmitting}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Função</Label>
-                  <Select value={newRole} onValueChange={setNewRole}>
+                  <Label htmlFor="role">Função *</Label>
+                  <Select value={newRole} onValueChange={setNewRole} disabled={isSubmitting}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -339,14 +392,30 @@ const ManageUsers = () => {
                   </Select>
                 </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setDialogOpen(false)}
+                    disabled={isSubmitting}
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit" className="bg-gradient-primary">
-                    Criar Usuário
+                  <Button 
+                    type="submit" 
+                    className="bg-gradient-primary"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Criando...
+                      </>
+                    ) : (
+                      "Criar Usuário"
+                    )}
                   </Button>
-                </div>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -617,7 +686,13 @@ const ManageUsers = () => {
       </main>
 
       {/* Dialog para reset de senha */}
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+      <Dialog open={passwordDialogOpen} onOpenChange={(open) => { 
+        setPasswordDialogOpen(open); 
+        if (!open) {
+          setResetPassword("");
+          setSelectedUser(null);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Redefinir Senha</DialogTitle>
@@ -629,30 +704,55 @@ const ManageUsers = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Nova Senha</Label>
+              <Label htmlFor="resetPassword">Nova Senha</Label>
               <Input
+                id="resetPassword"
                 type="password"
                 value={resetPassword}
                 onChange={(e) => setResetPassword(e.target.value)}
                 placeholder="Digite a nova senha"
                 minLength={6}
                 required
+                disabled={isSubmitting}
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setPasswordDialogOpen(false)}
+                disabled={isSubmitting}
+              >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-gradient-primary">
-                Atualizar Senha
+              <Button 
+                type="submit" 
+                className="bg-gradient-primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Atualizando...
+                  </>
+                ) : (
+                  "Atualizar Senha"
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Dialog para editar usuário */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { 
+        setEditDialogOpen(open); 
+        if (!open) {
+          setEditName("");
+          setEditRole("");
+          setSelectedUser(null);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
@@ -664,16 +764,18 @@ const ManageUsers = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Nome Completo</Label>
+              <Label htmlFor="editName">Nome Completo</Label>
               <Input
+                id="editName"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Nome do usuário"
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
-              <Label>Função</Label>
-              <Select value={editRole} onValueChange={setEditRole}>
+              <Label htmlFor="editRole">Função</Label>
+              <Select value={editRole} onValueChange={setEditRole} disabled={isSubmitting}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -685,14 +787,30 @@ const ManageUsers = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setEditDialogOpen(false)}
+                disabled={isSubmitting}
+              >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-gradient-primary">
-                Atualizar Usuário
+              <Button 
+                type="submit" 
+                className="bg-gradient-primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Atualizando...
+                  </>
+                ) : (
+                  "Atualizar Usuário"
+                )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
