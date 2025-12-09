@@ -116,31 +116,44 @@ const Landing = () => {
       {/* Navigation */}
       <nav className="relative z-10 sticky top-0 glass backdrop-blur-lg border-b border-primary/10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-
-          {/* LOGO - CABEÇA DE ASTRONAUTA */}
+          {/* LOGO - JOVEMCODER MODERNO */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-primary flex items-center justify-center shadow-xl">
-              <svg viewBox="0 0 100 100" className="w-6 h-6 text-white fill-current">
-                {/* Capacete do astronauta */}
-                <ellipse cx="50" cy="35" rx="28" ry="25" fill="white" />
-                <ellipse cx="50" cy="35" rx="28" ry="25" fill="url(#helmetGradient)" opacity="0.3" />
-                <rect x="22" y="30" width="56" height="20" rx="10" fill="white" />
-                <rect x="22" y="30" width="56" height="20" rx="10" fill="url(#visorGradient)" opacity="0.8" />
-                <ellipse cx="50" cy="40" rx="25" ry="8" fill="#1a1a2e" opacity="0.3" />
-                <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
-                <path d="M 22 35 Q 50 25 78 35" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
-                <path d="M 25 50 Q 50 45 75 50" stroke="white" strokeWidth="1" fill="none" opacity="0.3" />
-                <defs>
-                  <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4" />
-                  </linearGradient>
-                  <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#357abd" stopOpacity="0.8" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 flex items-center justify-center shadow-xl relative overflow-hidden group hover:scale-105 transition-transform">
+              {/* Background gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
+              
+              {/* Letter J */}
+              <div className="relative z-10">
+                <div className="text-white font-bold text-xl font-display">J</div>
+                <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter O */}
+              <div className="relative z-10 ml-1">
+                <div className="text-white font-bold text-xl font-display">O</div>
+                <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter V */}
+              <div className="relative z-10 ml-1">
+                <div className="text-white font-bold text-xl font-display">V</div>
+                <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter E */}
+              <div className="relative z-10 ml-1">
+                <div className="text-white font-bold text-xl font-display">E</div>
+                <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter M */}
+              <div className="relative z-10 ml-1">
+                <div className="text-white font-bold text-xl font-display">M</div>
+                <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 to-purple-400/30 blur-md group-hover:from-cyan-400/50 group-hover:to-purple-400/50 transition-all"></div>
             </div>
 
             <span className="font-display text-xl font-extrabold tracking-wide text-foreground">
@@ -169,31 +182,44 @@ const Landing = () => {
       {/* HERO */}
       <section className="relative z-10 pt-36 pb-24 px-4">
         <div className="container mx-auto text-center">
-
           {/* LOGO CENTRAL */}
           <div className="flex justify-center mb-6 animate-float">
-            <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center shadow-2xl">
-              <svg viewBox="0 0 100 100" className="w-10 h-10 text-white fill-current">
-                {/* Capacete do astronauta */}
-                <ellipse cx="50" cy="35" rx="28" ry="25" fill="white" />
-                <ellipse cx="50" cy="35" rx="28" ry="25" fill="url(#helmetGradient)" opacity="0.3" />
-                <rect x="22" y="30" width="56" height="20" rx="10" fill="white" />
-                <rect x="22" y="30" width="56" height="20" rx="10" fill="url(#visorGradient)" opacity="0.8" />
-                <ellipse cx="50" cy="40" rx="25" ry="8" fill="#1a1a2e" opacity="0.3" />
-                <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
-                <path d="M 22 35 Q 50 25 78 35" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
-                <path d="M 25 50 Q 50 45 75 50" stroke="white" strokeWidth="1" fill="none" opacity="0.3" />
-                <defs>
-                  <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4" />
-                  </linearGradient>
-                  <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#357abd" stopOpacity="0.8" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 flex items-center justify-center shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform">
+              {/* Background gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
+              
+              {/* Letter J */}
+              <div className="relative z-10">
+                <div className="text-white font-bold text-2xl font-display">J</div>
+                <div className="absolute -bottom-1 left-0 w-full h-1 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter O */}
+              <div className="relative z-10 ml-2">
+                <div className="text-white font-bold text-2xl font-display">O</div>
+                <div className="absolute -bottom-1 left-0 w-full h-1 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter V */}
+              <div className="relative z-10 ml-2">
+                <div className="text-white font-bold text-2xl font-display">V</div>
+                <div className="absolute -bottom-1 left-0 w-full h-1 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter E */}
+              <div className="relative z-10 ml-2">
+                <div className="text-white font-bold text-2xl font-display">E</div>
+                <div className="absolute -bottom-1 left-0 w-full h-1 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Letter M */}
+              <div className="relative z-10 ml-2">
+                <div className="text-white font-bold text-2xl font-display">M</div>
+                <div className="absolute -bottom-1 left-0 w-full h-1 bg-white/60 rounded-full"></div>
+              </div>
+              
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 to-purple-400/30 blur-md group-hover:from-cyan-400/50 group-hover:to-purple-400/50 transition-all"></div>
             </div>
           </div>
 
@@ -338,28 +364,9 @@ launch_programming()`}
       <footer className="relative z-10 py-12 px-4 border-t border-border/50">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <svg viewBox="0 0 100 100" className="w-5 h-5 text-white fill-current">
-                {/* Capacete do astronauta */}
-                <ellipse cx="50" cy="35" rx="28" ry="25" fill="white" />
-                <ellipse cx="50" cy="35" rx="28" ry="25" fill="url(#helmetGradient)" opacity="0.3" />
-                <rect x="22" y="30" width="56" height="20" rx="10" fill="white" />
-                <rect x="22" y="30" width="56" height="20" rx="10" fill="url(#visorGradient)" opacity="0.8" />
-                <ellipse cx="50" cy="40" rx="25" ry="8" fill="#1a1a2e" opacity="0.3" />
-                <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
-                <path d="M 22 35 Q 50 25 78 35" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
-                <path d="M 25 50 Q 50 45 75 50" stroke="white" strokeWidth="1" fill="none" opacity="0.3" />
-                <defs>
-                  <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#e0e0e0" stopOpacity="0.4" />
-                  </linearGradient>
-                  <linearGradient id="visorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="#357abd" stopOpacity="0.8" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 flex items-center justify-center">
+              {/* Letter J */}
+              <div className="text-white font-bold text-sm font-display">J</div>
             </div>
             <span className="font-display font-bold text-foreground">
               Jovem<span className="text-gradient-primary">Coder</span>
