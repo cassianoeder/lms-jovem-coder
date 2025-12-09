@@ -154,6 +154,7 @@ const ManageStudents = () => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
+      // Buscar todos os usuários com role de student
       const { data: studentRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -169,6 +170,7 @@ const ManageStudents = () => {
 
       const studentIds = studentRoles.map(r => r.user_id);
 
+      // Buscar perfis dos alunos
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, created_at')
@@ -176,6 +178,7 @@ const ManageStudents = () => {
 
       if (profilesError) throw profilesError;
 
+      // Buscar XP dos alunos
       const { data: xpData, error: xpError } = await supabase
         .from('student_xp')
         .select('user_id, total_xp, level')
@@ -183,6 +186,7 @@ const ManageStudents = () => {
 
       if (xpError) throw xpError;
 
+      // Buscar streaks dos alunos
       const { data: streaks, error: streaksError } = await supabase
         .from('streaks')
         .select('user_id, current_streak')
@@ -190,6 +194,7 @@ const ManageStudents = () => {
 
       if (streaksError) throw streaksError;
 
+      // Buscar matrículas dos alunos
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from('enrollments')
         .select('student_id')
@@ -198,6 +203,7 @@ const ManageStudents = () => {
 
       if (enrollmentsError) throw enrollmentsError;
 
+      // Mapear dados para exibição
       const xpMap = new Map<string, { total_xp: number; level: number }>();
       if (xpData) {
         xpData.forEach(x => {
@@ -345,7 +351,7 @@ const ManageStudents = () => {
       setEnrollDialogOpen(false);
       setSelectedStudentForEnroll(null);
       setSelectedClass("");
-      fetchStudents();
+      fetchStudents(); // Atualizar a lista
     } catch (error: any) {
       console.error('Error enrolling student:', error);
       toast.error("Erro ao matricular aluno: " + error.message);
@@ -372,7 +378,7 @@ const ManageStudents = () => {
       if (authError) throw authError;
 
       toast.success("Aluno removido com sucesso");
-      fetchStudents();
+      fetchStudents(); // Atualizar a lista
     } catch (error: any) {
       console.error('Error deleting student:', error);
       toast.error("Erro ao remover aluno: " + error.message);
@@ -392,76 +398,20 @@ const ManageStudents = () => {
 
     setIsCreating(true);
     try {
-      // Criar usuário usando signup normal
-      const { data, error } = await supabase.auth.signUp({
-        email: newStudentEmail,
-        password: newStudentPassword,
-        options: {
-          data: {
-            full_name: newStudentName,
-            role: 'student'
-          }
-        }
+      // Usar a função RPC para criar usuário sem login automático
+      const { data, error } = await supabase.rpc('admin_create_user', {
+        p_email: newStudentEmail,
+        p_password: newStudentPassword,
+        p_full_name: newStudentName,
+        p_role: 'student'
       });
 
       if (error) throw error;
 
-      // Se o usuário foi criado com sucesso, vamos adicionar os registros adicionais
-      if (data.user) {
-        const userId = data.user.id;
-        
-        // Criar profile se não existir
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            user_id: userId,
-            full_name: newStudentName,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
-
-        if (profileError) throw profileError;
-
-        // Criar role se não existir
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: userId,
-            role: 'student',
-            created_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
-
-        if (roleError) throw roleError;
-
-        // Criar XP inicial se não existir
-        const { error: xpError } = await supabase
-          .from('student_xp')
-          .upsert({
-            user_id: userId,
-            total_xp: 0,
-            level: 1,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
-
-        if (xpError) throw xpError;
-
-        // Criar streak inicial se não existir
-        const { error: streakError } = await supabase
-          .from('streaks')
-          .upsert({
-            user_id: userId,
-            current_streak: 0,
-            longest_streak: 0,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
-
-        if (streakError) throw streakError;
-      }
-
       toast.success("Aluno criado com sucesso!");
       setCreateStudentDialogOpen(false);
       resetCreateStudentForm();
-      fetchStudents();
+      fetchStudents(); // Atualizar a lista de alunos
     } catch (error: any) {
       console.error('Error creating student:', error);
       toast.error("Erro ao criar aluno: " + error.message);
