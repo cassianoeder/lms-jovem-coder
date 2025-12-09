@@ -62,24 +62,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const fetchUserData = async (userId: string) => {
       try {
         // Fetch profile
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', userId)
           .maybeSingle();
         
-        if (profileData) {
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+        } else if (profileData) {
           setProfile(profileData);
         }
         
         // Fetch role
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
           .maybeSingle();
           
-        if (roleData) {
+        if (roleError) {
+          console.error('Error fetching role:', roleError);
+        } else if (roleData) {
           setRole(roleData.role as AppRole);
         }
       } catch (error) {
@@ -89,15 +93,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer data fetching with setTimeout to avoid deadlock
+        // Fetch user data when session changes
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
+          await fetchUserData(session.user.id);
         } else {
           setProfile(null);
           setRole(null);
@@ -107,11 +109,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserData(session.user.id);
+        await fetchUserData(session.user.id);
       }
       setLoading(false);
     });
@@ -132,10 +134,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
-          role: role,
+          // Note: The role will be set by admin later, not during signup
         },
       },
     });
+    
+    // After signup, create profile and default role
+    if (!error) {
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          full_name: fullName,
+          avatar_url: null,
+        });
+      
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+      }
+      
+      // Create default student role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          role: 'student',
+        });
+      
+      if (roleError) {
+        console.error('Error creating role:', roleError);
+      }
+    }
     
     return { error: error as Error | null };
   };
@@ -145,7 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: new Error("Supabase not configured") };
     }
     
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
