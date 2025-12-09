@@ -46,7 +46,7 @@ const Landing = () => {
         <div className="container mx-auto text-center">
 
           {/* LOGO CENTRAL */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 animate-float">
             <div className="w-20 h-20 rounded-full bg-gradient-primary flex items-center justify-center shadow-2xl">
               <svg viewBox="0 0 64 64" className="w-10 h-10 text-white fill-current">
                 <path d="M32 4c6 0 11 5 11 11s-5 11-11 11S21 21 21 15 26 4 32 4zm0 26c-9 0-18 4-18 12v6h36v-6c0-8-9-12-18-12z"/>
@@ -54,29 +54,29 @@ const Landing = () => {
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2 mb-6">
+          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2 mb-6 animate-fade-in">
             <Flame className="w-4 h-4 text-streak" />
             <span className="text-sm text-foreground">Simulação de treinamento global ativa</span>
           </div>
 
           {/* === TÍTULO SPACEX === */}
-          <h1 className="font-display text-5xl md:text-7xl font-black tracking-tight text-white mb-6 leading-tight">
+          <h1 className="font-display text-5xl md:text-7xl font-black tracking-tight text-white mb-6 leading-tight animate-slide-up">
             PROGRAME O FUTURO
             <br />
             <span className="text-gradient-primary">COMO UM ENGENHEIRO DE MISSÃO</span>
           </h1>
 
           {/* SUBTÍTULO */}
-          <p className="text-lg text-cyan-200 max-w-2xl mx-auto mb-12">
+          <p className="text-lg text-cyan-200 max-w-2xl mx-auto mb-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             Aprenda programação como quem comanda uma missão espacial. Python, lógica e sistemas reais em uma experiência futurista.
           </p>
 
           {/* BOTÃO */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up" style={{ animationDelay: '0.4s' }}>
             <Link to="/auth?mode=register">
               <Button
                 size="lg"
-                className="bg-black border border-cyan-400 text-cyan-300 hover:bg-cyan-500 hover:text-black transition-all text-lg px-10 py-6 shadow-xl"
+                className="bg-black border border-cyan-400 text-cyan-300 hover:bg-cyan-500 hover:text-black transition-all text-lg px-10 py-6 shadow-xl hover:scale-105"
               >
                 Iniciar Missão
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -85,7 +85,7 @@ const Landing = () => {
           </div>
 
           {/* === TERMINAL COM PYTHON === */}
-          <div className="max-w-2xl mx-auto text-left p-6 rounded-xl bg-black/60 border border-cyan-300/30 backdrop-blur shadow-xl mb-20">
+          <div className="max-w-2xl mx-auto text-left p-6 rounded-xl bg-black/60 border border-cyan-300/30 backdrop-blur shadow-xl mb-20 animate-fade-in animate-glow">
             <pre className="text-cyan-300 font-mono text-sm whitespace-pre">
 {`# Missão Espacial JovemCoder
 
@@ -112,7 +112,7 @@ launch_programming()`}
             ].map((stat, index) => (
               <div
                 key={index}
-                className="glass rounded-2xl p-6 border border-primary/20 hover:shadow-2xl hover:border-primary transition-all animate-fade-in"
+                className="glass rounded-2xl p-6 border border-primary/20 hover:shadow-2xl hover:border-primary hover:scale-105 transition-all animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <stat.icon className="w-8 h-8 text-primary mx-auto mb-3" />
@@ -147,10 +147,10 @@ launch_programming()`}
             ].map((feature, index) => (
               <div
                 key={index}
-                className="glass rounded-2xl p-8 border border-primary/20 hover:shadow-2xl hover:scale-105 transition-all animate-fade-in"
+                className="glass rounded-2xl p-8 border border-primary/20 hover:shadow-2xl hover:scale-105 transition-all animate-fade-in group"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className={`w-14 h-14 rounded-xl ${feature.gradient} flex items-center justify-center mb-6`}>
+                <div className={`w-14 h-14 rounded-xl ${feature.gradient} flex items-center justify-center mb-6 group-hover:glow-primary transition-all`}>
                   <feature.icon className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="font-display text-xl font-semibold text-foreground mb-3">
@@ -168,7 +168,7 @@ launch_programming()`}
       {/* CTA */}
       <section className="py-24 px-4">
         <div className="container mx-auto">
-          <div className="glass rounded-3xl p-12 text-center relative overflow-hidden">
+          <div className="glass rounded-3xl p-12 text-center relative overflow-hidden animate-glow">
             <div className="absolute inset-0 bg-gradient-primary opacity-10" />
 
             <div className="relative z-10">
