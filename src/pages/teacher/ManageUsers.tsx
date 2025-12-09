@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   Code2,
   ArrowLeft,
@@ -17,30 +19,40 @@ import {
   GraduationCap,
   BookOpen,
   Crown,
+  Key,
+  Edit,
+  Trash2,
+  Mail,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface UserWithRole {
-  id: string;
   user_id: string;
-  role: string;
   full_name?: string;
+  role: string;
+  created_at: string;
+  email?: string;
 }
 
 const ManageUsers = () => {
   const { role: currentUserRole, signOut } = useAuth();
-  const { toast } = useToast();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
 
-  // Form state for creating new user
+  // Form states
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState<string>("teacher");
+  const [newRole, setNewRole] = useState("student");
+  const [resetPassword, setResetPassword] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("");
 
   const isAdmin = currentUserRole === 'admin';
 
@@ -50,28 +62,32 @@ const ManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      // Fetch roles
-      const { data: rolesData, error: rolesError } = await supabase
+      // Buscar usuários com roles e profiles
+      const { data: usersData, error: usersError } = await supabase
         .from('user_roles')
-        .select('id, user_id, role')
-        .order('role');
+        .select(`
+          user_id,
+          role,
+          created_at,
+          profiles!inner(full_name)
+        `)
+        .order('created_at', { ascending: false });
 
-      if (rolesError) throw rolesError;
+      if (usersError) throw usersError;
 
-      // Fetch profiles
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, full_name');
-
-      // Merge data
-      const merged = (rolesData || []).map(role => ({
-        ...role,
-        full_name: profilesData?.find(p => p.user_id === role.user_id)?.full_name || 'Sem nome'
+      // Buscar emails do auth.users
+      const userIds = usersData?.map(u => u.user_id) || [];
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      
+      const merged = (usersData || []).map(user => ({
+        ...user,
+        email: authUsers.users.find(au => au.id === user.user_id)?.email,
       }));
 
       setUsers(merged);
     } catch (error) {
       console.error('Error fetching users:', error);
+      toast.error("Erro ao buscar usuários");
     } finally {
       setLoading(false);
     }
@@ -81,45 +97,98 @@ const ManageUsers = () => {
     e.preventDefault();
 
     if (!isAdmin) {
-      toast({ title: "Erro", description: "Apenas administradores podem criar usuários", variant: "destructive" });
+      toast.error("Apenas administradores podem criar usuários");
       return;
     }
 
     try {
-      // Create user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newEmail,
-        password: newPassword,
-        options: {
-          data: {
-            full_name: newName,
-            role: 'student', // Will be overridden by admin
-          },
-        },
+      const { data, error } = await supabase.rpc('admin_create_user', {
+        p_email: newEmail,
+        p_password: newPassword,
+        p_full_name: newName,
+        p_role: newRole,
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      if (authData.user) {
-        // Update the role to the selected one (admin function)
-        const { error: rpcError } = await supabase.rpc('admin_set_user_role', {
-          target_user_id: authData.user.id,
-          new_role: newRole as any,
-        });
-
-        if (rpcError) throw rpcError;
-
-        toast({ title: "Sucesso", description: `Usuário ${newRole} criado com sucesso!` });
-        setDialogOpen(false);
-        setNewEmail("");
-        setNewPassword("");
-        setNewName("");
-        setNewRole("teacher");
-        fetchUsers();
-      }
+      toast.success(`Usuário ${newRole} criado com sucesso!`);
+      setDialogOpen(false);
+      resetForm();
+      fetchUsers();
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error(error.message);
     }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedUser) return;
+
+    try {
+      const { error } = await supabase.rpc('admin_update_user_password', {
+        p_user_id: selectedUser.user_id,
+        p_new_password: resetPassword,
+      });
+
+      if (error) throw error;
+
+      toast.success("Senha atualizada com sucesso!");
+      setPasswordDialogOpen(false);
+      setResetPassword("");
+      setSelectedUser(null);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedUser) return;
+
+    try {
+      const { error } = await supabase.rpc('admin_update_user', {
+        p_user_id: selectedUser.user_id,
+        p_full_name: editName || undefined,
+        p_role: editRole || undefined,
+      });
+
+      if (error) throw error;
+
+      toast.success("Usuário atualizado com sucesso!");
+      setEditDialogOpen(false);
+      setSelectedUser(null);
+      setEditName("");
+      setEditRole("");
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este usuário? Esta ação é irreversível.")) return;
+
+    try {
+      const { error } = await supabase.rpc('admin_delete_user', {
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+
+      toast.success("Usuário excluído com sucesso!");
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const resetForm = () => {
+    setNewEmail("");
+    setNewPassword("");
+    setNewName("");
+    setNewRole("student");
   };
 
   const getRoleIcon = (role: string) => {
@@ -176,10 +245,10 @@ const ManageUsers = () => {
     );
   }
 
+  const students = users.filter(u => u.role === 'student');
   const teachers = users.filter(u => u.role === 'teacher');
   const coordinators = users.filter(u => u.role === 'coordinator');
   const admins = users.filter(u => u.role === 'admin');
-  const students = users.filter(u => u.role === 'student');
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -209,7 +278,7 @@ const ManageUsers = () => {
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Usuários</h1>
             <p className="text-muted-foreground">
-              {teachers.length} professores • {coordinators.length} coordenadores • {students.length} alunos
+              {students.length} alunos • {teachers.length} professores • {coordinators.length} coordenadores • {admins.length} admins
             </p>
           </div>
           
@@ -217,7 +286,7 @@ const ManageUsers = () => {
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary hover:opacity-90">
                 <UserPlus className="w-4 h-4 mr-2" />
-                Novo Professor/Coordenador
+                Novo Usuário
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -262,6 +331,7 @@ const ManageUsers = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="student">Aluno</SelectItem>
                       <SelectItem value="teacher">Professor</SelectItem>
                       <SelectItem value="coordinator">Coordenador</SelectItem>
                       <SelectItem value="admin">Administrador</SelectItem>
@@ -282,101 +352,350 @@ const ManageUsers = () => {
           </Dialog>
         </div>
 
-        {/* Admins & Coordinators */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-6">
-          <Card className="glass border-border/50">
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Crown className="w-5 h-5 text-badge-gold" />
-                Administradores
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {admins.length > 0 ? admins.map((user) => (
-                <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50">
-                  <div className="w-10 h-10 rounded-full bg-badge-gold/20 flex items-center justify-center text-badge-gold">
-                    <Crown className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                  </div>
-                  <Badge className={getRoleBadgeClass(user.role)}>{getRoleLabel(user.role)}</Badge>
-                </div>
-              )) : (
-                <p className="text-muted-foreground text-center py-4">Nenhum administrador</p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Tabs para diferentes tipos de usuários */}
+        <Tabs defaultValue="students" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="students">Alunos ({students.length})</TabsTrigger>
+            <TabsTrigger value="teachers">Professores ({teachers.length})</TabsTrigger>
+            <TabsTrigger value="coordinators">Coordenadores ({coordinators.length})</TabsTrigger>
+            <TabsTrigger value="admins">Administradores ({admins.length})</TabsTrigger>
+          </TabsList>
 
-          <Card className="glass border-border/50">
-            <CardHeader>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Shield className="w-5 h-5 text-level" />
-                Coordenadores
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {coordinators.length > 0 ? coordinators.map((user) => (
-                <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50">
-                  <div className="w-10 h-10 rounded-full bg-level/20 flex items-center justify-center text-level">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                  </div>
-                  <Badge className={getRoleBadgeClass(user.role)}>{getRoleLabel(user.role)}</Badge>
-                </div>
-              )) : (
-                <p className="text-muted-foreground text-center py-4">Nenhum coordenador</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Teachers */}
-        <Card className="glass border-border/50 mb-6">
-          <CardHeader>
-            <CardTitle className="font-display flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-accent" />
-              Professores ({teachers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {teachers.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {teachers.map((user) => (
-                  <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50">
-                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
-                      <BookOpen className="w-5 h-5" />
+          {/* Alunos */}
+          <TabsContent value="students">
+            <Card className="glass border-border/50">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {students.length > 0 ? students.map((user) => (
+                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <User className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Criado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getRoleBadgeClass(user.role)}>
+                          {getRoleLabel(user.role)}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setPasswordDialogOpen(true);
+                          }}
+                        >
+                          <Key className="w-4 h-4 mr-1" />
+                          Senha
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setEditName(user.full_name || "");
+                            setEditRole(user.role);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-destructive" 
+                          onClick={() => handleDeleteUser(user.user_id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-4">Nenhum professor cadastrado</p>
-            )}
-          </CardContent>
-        </Card>
+                  )) : (
+                    <p className="text-muted-foreground text-center py-8">Nenhum aluno cadastrado</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Students count */}
-        <Card className="glass border-border/50">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Alunos</p>
-                <p className="font-display text-3xl font-bold text-foreground">{students.length}</p>
-                <p className="text-sm text-muted-foreground">Alunos se cadastram automaticamente pelo sistema</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Professores */}
+          <TabsContent value="teachers">
+            <Card className="glass border-border/50">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {teachers.length > 0 ? teachers.map((user) => (
+                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 text-accent" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getRoleBadgeClass(user.role)}>
+                          {getRoleLabel(user.role)}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setPasswordDialogOpen(true);
+                          }}
+                        >
+                          <Key className="w-4 h-4 mr-1" />
+                          Senha
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setEditName(user.full_name || "");
+                            setEditRole(user.role);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-destructive" 
+                          onClick={() => handleDeleteUser(user.user_id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-muted-foreground text-center py-8">Nenhum professor cadastrado</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Coordenadores */}
+          <TabsContent value="coordinators">
+            <Card className="glass border-border/50">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {coordinators.length > 0 ? coordinators.map((user) => (
+                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-level/20 flex items-center justify-center">
+                          <Shield className="w-5 h-5 text-level" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getRoleBadgeClass(user.role)}>
+                          {getRoleLabel(user.role)}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setPasswordDialogOpen(true);
+                          }}
+                        >
+                          <Key className="w-4 h-4 mr-1" />
+                          Senha
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setEditName(user.full_name || "");
+                            setEditRole(user.role);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-destructive" 
+                          onClick={() => handleDeleteUser(user.user_id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-muted-foreground text-center py-8">Nenhum coordenador cadastrado</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Administradores */}
+          <TabsContent value="admins">
+            <Card className="glass border-border/50">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {admins.length > 0 ? admins.map((user) => (
+                    <div key={user.user_id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-badge-gold/20 flex items-center justify-center">
+                          <Crown className="w-5 h-5 text-badge-gold" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{user.full_name || "Sem nome"}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getRoleBadgeClass(user.role)}>
+                          {getRoleLabel(user.role)}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setPasswordDialogOpen(true);
+                          }}
+                        >
+                          <Key className="w-4 h-4 mr-1" />
+                          Senha
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setEditName(user.full_name || "");
+                            setEditRole(user.role);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                        {admins.length > 1 && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-destructive" 
+                            onClick={() => handleDeleteUser(user.user_id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-muted-foreground text-center py-8">Nenhum administrador cadastrado</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* Dialog para reset de senha */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir Senha</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Usuário: <strong>{selectedUser?.full_name}</strong>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Nova Senha</Label>
+              <Input
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                placeholder="Digite a nova senha"
+                minLength={6}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-gradient-primary">
+                Atualizar Senha
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar usuário */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUser} className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Usuário: <strong>{selectedUser?.full_name}</strong>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Nome Completo</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nome do usuário"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Função</Label>
+              <Select value={editRole} onValueChange={setEditRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Aluno</SelectItem>
+                  <SelectItem value="teacher">Professor</SelectItem>
+                  <SelectItem value="coordinator">Coordenador</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-gradient-primary">
+                Atualizar Usuário
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
