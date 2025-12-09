@@ -51,18 +51,19 @@ const ManageClasses = () => {
     status: "active",
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [classesRes, requestsRes] = await Promise.all([
-        supabase.from('classes').select('*').order('name'),
-        supabase.from('enrollment_requests').select('*, profiles(full_name)').eq('status', 'pending').order('created_at'),
-      ]);
-      
-      if (classesRes.data) setClasses(classesRes.data);
-      if (requestsRes.data) setEnrollmentRequests(requestsRes.data);
-      setLoading(false);
-    };
+  // Move fetchData outside useEffect to make it accessible throughout the component
+  const fetchData = async () => {
+    const [classesRes, requestsRes] = await Promise.all([
+      supabase.from('classes').select('*').order('name'),
+      supabase.from('enrollment_requests').select('*, profiles(full_name)').eq('status', 'pending').order('created_at'),
+    ]);
+    
+    if (classesRes.data) setClasses(classesRes.data);
+    if (requestsRes.data) setEnrollmentRequests(requestsRes.data);
+    setLoading(false);
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 

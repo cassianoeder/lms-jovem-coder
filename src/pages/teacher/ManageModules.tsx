@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Code2, ArrowLeft, Plus, Pencil, Trash2, Layers, BookOpen, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Module {
@@ -30,6 +31,7 @@ interface Course {
 }
 
 const ManageModules = () => {
+  const { user, role } = useAuth();
   const [modules, setModules] = useState<Module[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,12 +45,24 @@ const ManageModules = () => {
     order_index: 0,
   });
 
+  // Debug: Verificar autenticação
+  useEffect(() => {
+    console.log("=== ManageModules DEBUG ===");
+    console.log("User:", user);
+    console.log("Role:", role);
+    console.log("User ID:", user?.id);
+  }, [user, role]);
+
   const fetchData = async () => {
+    console.log("Fetching data...");
     setLoading(true);
     const [modulesRes, coursesRes] = await Promise.all([
       supabase.from('modules').select('*, courses(title)').order('order_index'),
       supabase.from('courses').select('id, title').order('title'),
     ]);
+
+    console.log("Modules response:", modulesRes);
+    console.log("Courses response:", coursesRes);
 
     if (modulesRes.data) setModules(modulesRes.data as Module[]);
     if (coursesRes.data) setCourses(coursesRes.data);
@@ -61,6 +75,11 @@ const ManageModules = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log("=== SUBMIT DEBUG ===");
+    console.log("Form data:", formData);
+    console.log("User ID:", user?.id);
+    console.log("Role:", role);
     
     if (!formData.course_id) {
       toast.error("Selecione um curso");
@@ -75,17 +94,23 @@ const ManageModules = () => {
       order_index: formData.order_index,
     };
 
+    console.log("Payload to insert/update:", payload);
+
     if (selectedModule) {
+      console.log("Updating module:", selectedModule.id);
       const { error } = await supabase.from('modules').update(payload).eq('id', selectedModule.id);
+      console.log("Update error:", error);
       if (error) {
-        toast.error("Erro ao atualizar módulo");
+        toast.error("Erro ao atualizar módulo: " + error.message);
         return;
       }
       toast.success("Módulo atualizado!");
     } else {
+      console.log("Creating new module...");
       const { error } = await supabase.from('modules').insert(payload);
+      console.log("Insert error:", error);
       if (error) {
-        toast.error("Erro ao criar módulo");
+        toast.error("Erro ao criar módulo: " + error.message);
         return;
       }
       toast.success("Módulo criado!");
@@ -98,9 +123,11 @@ const ManageModules = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este módulo?")) return;
+    console.log("Deleting module:", id);
     const { error } = await supabase.from('modules').delete().eq('id', id);
+    console.log("Delete error:", error);
     if (error) {
-      toast.error("Erro ao excluir módulo");
+      toast.error("Erro ao excluir módulo: " + error.message);
       return;
     }
     toast.success("Módulo excluído!");
@@ -108,6 +135,7 @@ const ManageModules = () => {
   };
 
   const handleEdit = (mod: Module) => {
+    console.log("Editing module:", mod);
     setSelectedModule(mod);
     setFormData({
       title: mod.title,
@@ -120,9 +148,11 @@ const ManageModules = () => {
   };
 
   const toggleActive = async (mod: Module) => {
+    console.log("Toggling active status for module:", mod.id);
     const { error } = await supabase.from('modules').update({ is_active: !mod.is_active }).eq('id', mod.id);
+    console.log("Toggle error:", error);
     if (error) {
-      toast.error("Erro ao atualizar módulo");
+      toast.error("Erro ao atualizar módulo: " + error.message);
       return;
     }
     toast.success(mod.is_active ? "Módulo desativado" : "Módulo ativado");
