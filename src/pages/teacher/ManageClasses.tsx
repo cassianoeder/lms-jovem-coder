@@ -5,17 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { 
-  Code2, ArrowLeft, Plus, Pencil, Trash2, Users, Lock, Globe, 
-  CheckCircle, XCircle, Clock, Eye, BookOpen
-} from "lucide-react";
+import { Code2, ArrowLeft, Plus, Pencil, Trash2, Users, BookOpen, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,172 +17,85 @@ interface Class {
   name: string;
   description: string | null;
   is_public: boolean;
-  status: string;
+  status: string | null;
   teacher_id: string | null;
   created_at: string;
-}
-
-interface Course {
-  id: string;
-  title: string;
-}
-
-interface ClassCourse {
-  course_id: string;
-  courses?: { title: string };
+  updated_at: string;
 }
 
 interface EnrollmentRequest {
   id: string;
-  student_id: string;
   class_id: string;
+  student_id: string;
   message: string | null;
   status: string;
   created_at: string;
-  profiles?: { full_name: string };
-}
-
-interface Enrollment {
-  id: string;
-  student_id: string;
-  class_id: string;
-  status: string;
-  enrolled_at: string;
-  profiles?: { full_name: string };
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  profiles?: {
+    full_name: string;
+  };
 }
 
 const ManageClasses = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [classes, setClasses] = useState<Class[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [classCourses, setClassCourses] = useState<Record<string, ClassCourse[]>>({});
-  const [requests, setRequests] = useState<EnrollmentRequest[]>([]);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollmentRequests, setEnrollmentRequests] = useState<EnrollmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isStudentsDialogOpen, setIsStudentsDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     is_public: true,
-    course_ids: [] as string[],
+    status: "active",
   });
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [classesRes, coursesRes, requestsRes, classCoursesRes] = await Promise.all([
-      supabase.from('classes').select('*').order('created_at', { ascending: false }),
-      supabase.from('courses').select('id, title').order('title'),
-      supabase.from('enrollment_requests').select('*').eq('status', 'pending'),
-      supabase.from('class_courses').select('class_id, course_id, courses(title)'),
-    ]);
-
-    if (classesRes.data) setClasses(classesRes.data as Class[]);
-    if (coursesRes.data) setCourses(coursesRes.data);
-    
-    // Group class_courses by class_id
-    if (classCoursesRes.data) {
-      const grouped = (classCoursesRes.data as any[]).reduce((acc, cc) => {
-        if (!acc[cc.class_id]) acc[cc.class_id] = [];
-        acc[cc.class_id].push(cc);
-        return acc;
-      }, {} as Record<string, ClassCourse[]>);
-      setClassCourses(grouped);
-    }
-    
-    // Fetch profiles for requests
-    if (requestsRes.data && requestsRes.data.length > 0) {
-      const studentIds = requestsRes.data.map(r => r.student_id);
-      const { data: profilesData } = await supabase.from('profiles').select('user_id, full_name').in('user_id', studentIds);
-      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-      const requestsWithProfiles = requestsRes.data.map(r => ({
-        ...r,
-        profiles: profilesMap.get(r.student_id)
-      }));
-      setRequests(requestsWithProfiles as EnrollmentRequest[]);
-    } else {
-      setRequests([]);
-    }
-    setLoading(false);
-  };
-
-  const fetchEnrollments = async (classId: string) => {
-    const { data } = await supabase.from('enrollments').select('*').eq('class_id', classId);
-    if (data && data.length > 0) {
-      const studentIds = data.map(e => e.student_id);
-      const { data: profilesData } = await supabase.from('profiles').select('user_id, full_name').in('user_id', studentIds);
-      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-      const enrollmentsWithProfiles = data.map(e => ({
-        ...e,
-        profiles: profilesMap.get(e.student_id)
-      }));
-      setEnrollments(enrollmentsWithProfiles as Enrollment[]);
-    } else {
-      setEnrollments([]);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      const [classesRes, requestsRes] = await Promise.all([
+        supabase.from('classes').select('*').order('name'),
+        supabase.from('enrollment_requests').select('*, profiles(full_name)').eq('status', 'pending').order('created_at'),
+      ]);
+      
+      if (classesRes.data) setClasses(classesRes.data);
+      if (requestsRes.data) setEnrollmentRequests(requestsRes.data);
+      setLoading(false);
+    };
+
     fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const payload = {
       name: formData.name,
       description: formData.description || null,
       is_public: formData.is_public,
+      status: formData.status,
       teacher_id: user?.id,
     };
 
-    try {
-      if (selectedClass) {
-        // Update class
-        const { error } = await supabase
-          .from('classes')
-          .update(payload)
-          .eq('id', selectedClass.id);
-        if (error) throw error;
-
-        // Update class_courses: delete all and re-insert
-        await supabase.from('class_courses').delete().eq('class_id', selectedClass.id);
-        
-        if (formData.course_ids.length > 0) {
-          const coursesToInsert = formData.course_ids.map(courseId => ({
-            class_id: selectedClass.id,
-            course_id: courseId,
-          }));
-          const { error: insertError } = await supabase.from('class_courses').insert(coursesToInsert);
-          if (insertError) throw insertError;
-        }
-
-        toast.success("Turma atualizada!");
-      } else {
-        // Create class
-        const { data: newClass, error } = await supabase.from('classes').insert(payload).select().single();
-        if (error) throw error;
-
-        // Insert class_courses
-        if (formData.course_ids.length > 0 && newClass) {
-          const coursesToInsert = formData.course_ids.map(courseId => ({
-            class_id: newClass.id,
-            course_id: courseId,
-          }));
-          const { error: insertError } = await supabase.from('class_courses').insert(coursesToInsert);
-          if (insertError) throw insertError;
-        }
-
-        toast.success("Turma criada!");
+    if (selectedClass) {
+      const { error } = await supabase.from('classes').update(payload).eq('id', selectedClass.id);
+      if (error) {
+        toast.error("Erro ao atualizar turma");
+        return;
       }
-
-      setIsDialogOpen(false);
-      resetForm();
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao salvar turma");
+      toast.success("Turma atualizada!");
+    } else {
+      const { error } = await supabase.from('classes').insert(payload);
+      if (error) {
+        toast.error("Erro ao criar turma");
+        return;
+      }
+      toast.success("Turma criada!");
     }
+
+    setDialogOpen(false);
+    resetForm();
+    fetchData();
   };
 
   const handleDelete = async (id: string) => {
@@ -205,78 +111,69 @@ const ManageClasses = () => {
 
   const handleEdit = (cls: Class) => {
     setSelectedClass(cls);
-    const courseIds = (classCourses[cls.id] || []).map(cc => cc.course_id);
     setFormData({
       name: cls.name,
       description: cls.description || "",
       is_public: cls.is_public,
-      course_ids: courseIds,
+      status: cls.status || "active",
     });
-    setIsDialogOpen(true);
-  };
-
-  const handleViewStudents = (cls: Class) => {
-    setSelectedClass(cls);
-    fetchEnrollments(cls.id);
-    setIsStudentsDialogOpen(true);
-  };
-
-  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
-    const request = requests.find(r => r.id === requestId);
-    if (!request) return;
-
-    if (action === 'approved') {
-      const { error: enrollError } = await supabase.from('enrollments').insert({
-        student_id: request.student_id,
-        class_id: request.class_id,
-        status: 'approved',
-      });
-      if (enrollError) {
-        toast.error("Erro ao aprovar aluno");
-        return;
-      }
-    }
-
-    const { error } = await supabase
-      .from('enrollment_requests')
-      .update({ status: action, reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-      .eq('id', requestId);
-
-    if (error) {
-      toast.error("Erro ao processar solicitação");
-      return;
-    }
-
-    toast.success(action === 'approved' ? "Aluno aprovado!" : "Solicitação recusada");
-    fetchData();
-  };
-
-  const handleRemoveStudent = async (enrollmentId: string) => {
-    if (!confirm("Remover este aluno da turma?")) return;
-    const { error } = await supabase.from('enrollments').delete().eq('id', enrollmentId);
-    if (error) {
-      toast.error("Erro ao remover aluno");
-      return;
-    }
-    toast.success("Aluno removido da turma");
-    if (selectedClass) fetchEnrollments(selectedClass.id);
+    setDialogOpen(true);
   };
 
   const resetForm = () => {
     setSelectedClass(null);
-    setFormData({ name: "", description: "", is_public: true, course_ids: [] });
+    setFormData({
+      name: "",
+      description: "",
+      is_public: true,
+      status: "active",
+    });
   };
 
-  const toggleCourse = (courseId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      course_ids: prev.course_ids.includes(courseId)
-        ? prev.course_ids.filter(id => id !== courseId)
-        : [...prev.course_ids, courseId]
-    }));
+  const handleApproveRequest = async (requestId: string, classId: string, studentId: string) => {
+    // Create enrollment
+    const { error: enrollError } = await supabase.from('enrollments').insert({
+      student_id: studentId,
+      class_id: classId,
+      status: 'approved',
+    });
+
+    if (enrollError) {
+      toast.error("Erro ao aprovar solicitação");
+      return;
+    }
+
+    // Update request status
+    const { error: updateError } = await supabase.from('enrollment_requests').update({
+      status: 'approved',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user?.id,
+    }).eq('id', requestId);
+
+    if (updateError) {
+      toast.error("Erro ao atualizar solicitação");
+      return;
+    }
+
+    toast.success("Solicitação aprovada!");
+    fetchData();
   };
 
-  const pendingRequestsCount = requests.length;
+  const handleRejectRequest = async (requestId: string) => {
+    const { error } = await supabase.from('enrollment_requests').update({
+      status: 'rejected',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user?.id,
+    }).eq('id', requestId);
+
+    if (error) {
+      toast.error("Erro ao rejeitar solicitação");
+      return;
+    }
+
+    toast.success("Solicitação rejeitada!");
+    fetchData();
+  };
 
   if (loading) {
     return (
@@ -301,13 +198,25 @@ const ManageClasses = () => {
               <span className="font-display text-lg font-bold text-foreground">Gerenciar Turmas</span>
             </div>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
+          <Button variant="outline" size="icon" onClick={signOut}>
+            <LogOut className="w-5 h-5 text-foreground" />
+          </Button>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-foreground mb-2">Turmas</h1>
+            <p className="text-muted-foreground">{classes.length} turmas cadastradas</p>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary hover:opacity-90">
                 <Plus className="w-4 h-4 mr-2" />Nova Turma
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>{selectedClass ? "Editar Turma" : "Nova Turma"}</DialogTitle>
               </DialogHeader>
@@ -318,7 +227,7 @@ const ManageClasses = () => {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Turma de Python 2024"
+                    placeholder="Ex: Turma de Python Básico"
                     required
                   />
                 </div>
@@ -331,55 +240,17 @@ const ManageClasses = () => {
                     placeholder="Descrição da turma..."
                   />
                 </div>
-                
-                {/* Multiple Courses Selection */}
-                <div className="space-y-3">
-                  <Label>Cursos Vinculados</Label>
-                  <div className="border border-border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
-                    {courses.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Nenhum curso cadastrado</p>
-                    ) : (
-                      courses.map((course) => (
-                        <div key={course.id} className="flex items-center space-x-3">
-                          <Checkbox 
-                            id={course.id}
-                            checked={formData.course_ids.includes(course.id)}
-                            onCheckedChange={() => toggleCourse(course.id)}
-                          />
-                          <label 
-                            htmlFor={course.id}
-                            className="text-sm font-medium leading-none cursor-pointer"
-                          >
-                            {course.title}
-                          </label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  {formData.course_ids.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {formData.course_ids.length} curso(s) selecionado(s)
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    {formData.is_public ? <Globe className="w-5 h-5 text-primary" /> : <Lock className="w-5 h-5 text-warning" />}
-                    <div>
-                      <p className="font-medium">{formData.is_public ? "Turma Pública" : "Turma Privada"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formData.is_public ? "Qualquer aluno pode solicitar entrada" : "Entrada somente com aprovação"}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_public"
                     checked={formData.is_public}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
+                    onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
                   />
+                  <Label htmlFor="is_public">Turma pública</Label>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" className="bg-gradient-primary hover:opacity-90">
+                  <Button type="submit" className="bg-gradient-primary">
                     {selectedClass ? "Salvar" : "Criar Turma"}
                   </Button>
                 </DialogFooter>
@@ -387,164 +258,74 @@ const ManageClasses = () => {
             </DialogContent>
           </Dialog>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="classes">
-          <TabsList className="mb-6">
-            <TabsTrigger value="classes">Turmas</TabsTrigger>
-            <TabsTrigger value="requests" className="relative">
-              Solicitações
-              {pendingRequestsCount > 0 && (
-                <Badge className="ml-2 bg-destructive text-destructive-foreground">{pendingRequestsCount}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="classes">
-            {classes.length === 0 ? (
-              <Card className="glass border-border/50">
-                <CardContent className="py-12 text-center">
-                  <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Nenhuma turma cadastrada</p>
-                  <Button className="mt-4 bg-gradient-primary" onClick={() => setIsDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />Criar Primeira Turma
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {classes.map((cls) => (
+            <Card key={cls.id} className="glass border-border/50 hover:border-primary/30 transition-colors">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className={cls.is_public ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}>
+                    {cls.is_public ? "Pública" : "Privada"}
+                  </Badge>
+                  <Badge variant="secondary" className="bg-accent/10 text-accent">
+                    {cls.status || "Ativa"}
+                  </Badge>
+                </div>
+                <CardTitle className="text-lg">{cls.name}</CardTitle>
+                {cls.description && (
+                  <CardDescription className="line-clamp-2">{cls.description}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(cls)}>
+                    <Pencil className="w-4 h-4 mr-1" />Editar
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {classes.map((cls) => {
-                  const classCoursesData = classCourses[cls.id] || [];
-                  return (
-                    <Card key={cls.id} className="glass border-border/50 hover:border-primary/30 transition-colors">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            {cls.is_public ? (
-                              <Globe className="w-4 h-4 text-primary" />
-                            ) : (
-                              <Lock className="w-4 h-4 text-warning" />
-                            )}
-                            <Badge variant="secondary" className={cls.is_public ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}>
-                              {cls.is_public ? "Pública" : "Privada"}
-                            </Badge>
-                          </div>
-                        </div>
-                        <CardTitle className="text-lg mt-2">{cls.name}</CardTitle>
-                        {cls.description && (
-                          <CardDescription className="line-clamp-2">{cls.description}</CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        {/* Show linked courses */}
-                        {classCoursesData.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {classCoursesData.map((cc, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                <BookOpen className="w-3 h-3 mr-1" />
-                                {cc.courses?.title || "Curso"}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-2 flex-wrap">
-                          <Button variant="outline" size="sm" onClick={() => handleViewStudents(cls)}>
-                            <Eye className="w-4 h-4 mr-1" />Alunos
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(cls)}>
-                            <Pencil className="w-4 h-4 mr-1" />Editar
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(cls.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="requests">
-            {requests.length === 0 ? (
-              <Card className="glass border-border/50">
-                <CardContent className="py-12 text-center">
-                  <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Nenhuma solicitação pendente</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="glass border-border/50">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Aluno</TableHead>
-                      <TableHead>Turma</TableHead>
-                      <TableHead>Mensagem</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {requests.map((request) => {
-                      const cls = classes.find(c => c.id === request.class_id);
-                      return (
-                        <TableRow key={request.id}>
-                          <TableCell className="font-medium">{request.profiles?.full_name || "Aluno"}</TableCell>
-                          <TableCell>{cls?.name || "Turma"}</TableCell>
-                          <TableCell className="max-w-xs truncate">{request.message || "-"}</TableCell>
-                          <TableCell>{new Date(request.created_at).toLocaleDateString('pt-BR')}</TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button size="sm" onClick={() => handleRequestAction(request.id, 'approved')} className="bg-primary hover:bg-primary/90">
-                              <CheckCircle className="w-4 h-4 mr-1" />Aprovar
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => handleRequestAction(request.id, 'rejected')}>
-                              <XCircle className="w-4 h-4 mr-1" />Recusar
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* Students Dialog */}
-      <Dialog open={isStudentsDialogOpen} onOpenChange={setIsStudentsDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Alunos - {selectedClass?.name}</DialogTitle>
-          </DialogHeader>
-          {enrollments.length === 0 ? (
-            <div className="py-8 text-center">
-              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhum aluno matriculado</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {enrollments.map((enrollment) => (
-                <div key={enrollment.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="font-medium">{enrollment.profiles?.full_name || "Aluno"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Desde {new Date(enrollment.enrolled_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemoveStudent(enrollment.id)}>
+                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(cls.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {enrollmentRequests.length > 0 && (
+          <Card className="glass border-border/50">
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Solicitações de Matrícula ({enrollmentRequests.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {enrollmentRequests.map((request) => (
+                  <div key={request.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-border/50">
+                    <div>
+                      <p className="font-medium">{request.profiles?.full_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Solicitou entrada em {new Date(request.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                      {request.message && (
+                        <p className="text-sm text-muted-foreground mt-1">"{request.message}"</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleApproveRequest(request.id, request.class_id, request.student_id)}>
+                        Aprovar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleRejectRequest(request.id)}>
+                        Rejeitar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
     </div>
   );
 };
