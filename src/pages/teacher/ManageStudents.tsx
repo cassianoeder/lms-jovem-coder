@@ -392,66 +392,15 @@ const ManageStudents = () => {
 
     setIsCreating(true);
     try {
-      // Create auth user using admin API
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newStudentEmail,
-        password: newStudentPassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name: newStudentName
-        }
+      // Usar a função RPC para criar o usuário
+      const { data, error } = await supabase.rpc('admin_create_user', {
+        p_email: newStudentEmail,
+        p_password: newStudentPassword,
+        p_full_name: newStudentName,
+        p_role: 'student'
       });
 
-      if (authError) throw authError;
-
-      const userId = authData.user.id;
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: userId,
-          full_name: newStudentName,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (profileError) throw profileError;
-
-      // Create user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role: 'student',
-          created_at: new Date().toISOString()
-        });
-
-      if (roleError) throw roleError;
-
-      // Create initial XP record
-      const { error: xpError } = await supabase
-        .from('student_xp')
-        .insert({
-          user_id: userId,
-          total_xp: 0,
-          level: 1,
-          updated_at: new Date().toISOString()
-        });
-
-      if (xpError) throw xpError;
-
-      // Create initial streak record
-      const { error: streakError } = await supabase
-        .from('streaks')
-        .insert({
-          user_id: userId,
-          current_streak: 0,
-          longest_streak: 0,
-          updated_at: new Date().toISOString()
-        });
-
-      if (streakError) throw streakError;
+      if (error) throw error;
 
       toast.success("Aluno criado com sucesso!");
       setCreateStudentDialogOpen(false);
