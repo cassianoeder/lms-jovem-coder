@@ -6,8 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, User, BookOpen, Award, Calendar } from 'lucide-react';
+import { Search, User, BookOpen, Award, Calendar, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Student {
   id: string;
@@ -18,8 +26,9 @@ interface Student {
   level: number;
   current_streak: number;
   last_activity_date: string | null;
-  enrolled_at: string;
-  class_name: string;
+  created_at: string;
+  class_name: string | null;
+  enrollment_status: string | null;
 }
 
 const StudentsManagement = () => {
@@ -31,7 +40,7 @@ const StudentsManagement = () => {
 
   useEffect(() => {
     if (user) {
-      fetchStudents();
+      fetchAllStudents();
     }
   }, [user]);
 
@@ -39,76 +48,64 @@ const StudentsManagement = () => {
     const filtered = students.filter(student => 
       student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.class_name.toLowerCase().includes(searchTerm.toLowerCase())
+      (student.class_name && student.class_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredStudents(filtered);
   }, [searchTerm, students]);
 
-  const fetchStudents = async () => {
+  const fetchAllStudents = async () => {
     try {
       setLoading(true);
       
-      // First, get classes taught by this teacher
-      const { data: classes, error: classesError } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('teacher_id', user?.id);
-
-      if (classesError) throw classesError;
-
-      if (!classes || classes.length === 0) {
-        setStudents([]);
-        setFilteredStudents([]);
-        setLoading(false);
-        return;
-      }
-
-      const classIds = classes.map(cls => cls.id);
-
-      // Fetch students enrolled in classes taught by this teacher
+      // Fetch all students in the system with their data
       const { data, error } = await supabase
-        .from('enrollments')
+        .from('profiles')
         .select(`
-          student_id,
-          enrolled_at,
-          class_id,
-          classes (
-            name
-          ),
-          profiles:user_id (
-            full_name,
-            avatar_url
-          ),
-          users:user_id (
+          user_id,
+          full_name,
+          avatar_url,
+          created_at,
+          users (
             email
           ),
-          student_xp:user_id (
+          student_xp (
             total_xp,
             level
           ),
-          streaks:user_id (
+          streaks (
             current_streak,
             last_activity_date
+          ),
+          enrollments (
+            class_id,
+            status,
+            classes (
+              name
+            )
           )
         `)
-        .in('class_id', classIds)
-        .eq('status', 'approved');
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Transform data to match Student interface
-      const transformedStudents = data.map((enrollment: any) => ({
-        id: enrollment.student_id,
-        full_name: enrollment.profiles?.full_name || 'Nome não disponível',
-        email: enrollment.users?.email || 'Email não disponível',
-        avatar_url: enrollment.profiles?.avatar_url || null,
-        total_xp: enrollment.student_xp?.total_xp || 0,
-        level: enrollment.student_xp?.level || 1,
-        current_streak: enrollment.streaks?.current_streak || 0,
-        last_activity_date: enrollment.streaks?.last_activity_date || null,
-        enrolled_at: enrollment.enrolled_at,
-        class_name: enrollment.classes?.name || 'Turma não especificada'
-      }));
+      const transformedStudents = data.map((profile: any) => {
+        const enrollment = profile.enrollments?.[0] || null;
+        
+        return {
+          id: profile.user_id,
+          full_name: profile.full_name || 'Nome não disponível',
+          email: profile.users?.email || 'Email não disponível',
+          avatar_url: profile.avatar_url || null,
+          total_xp: profile.student_xp?.[0]?.total_xp || 0,
+          level: profile.student_xp?.[0]?.level || 1,
+          current_streak: profile.streaks?.[0]?.current_streak || 0,
+          last_activity_date: profile.streaks?.[0]?.last_activity_date || null,
+          created_at: profile.created_at,
+          class_name: enrollment?.classes?.name || null,
+          enrollment_status: enrollment?.status || null
+        };
+      });
 
       setStudents(transformedStudents);
       setFilteredStudents(transformedStudents);
@@ -117,6 +114,42 @@ const StudentsManagement = () => {
       toast.error('Erro ao carregar alunos');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (userId: string, email: string) => {
+    try {
+      // Send password reset email
+      const { error } = await supabase.auth.admin.resetPasswordForUser(userId);
+      
+      if (error) throw error;
+      
+      toast.success(`Email de redefinição de senha enviado para ${email}`);
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast.error('Erro ao enviar email de redefinição de senha: ' + error.message);
+    }
+  };
+
+  const handleDeleteStudent = async (userId: string, fullName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o aluno ${fullName}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      // Delete user from auth
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (error) throw error;
+      
+      // Remove from local state
+      setStudents(students.filter(student => student.id !== userId));
+      setFilteredStudents(filteredStudents.filter(student => student.id !== userId));
+      
+      toast.success(`Aluno ${fullName} excluído com sucesso`);
+    } catch (error: any) {
+      console.error('Error deleting student:', error);
+      toast.error('Erro ao excluir aluno: ' + error.message);
     }
   };
 
@@ -134,8 +167,13 @@ const StudentsManagement = () => {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Gerenciamento de Alunos</h2>
           <p className="text-muted-foreground">
-            Visualize e gerencie os alunos matriculados em suas turmas
+            Visualize e gerencie todos os alunos cadastrados no sistema
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-sm text-muted-foreground">
+            Total de alunos: {students.length}
+          </div>
         </div>
       </div>
 
@@ -143,9 +181,9 @@ const StudentsManagement = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <CardTitle>Alunos Matriculados</CardTitle>
+              <CardTitle>Todos os Alunos</CardTitle>
               <CardDescription>
-                Lista de todos os alunos matriculados em suas turmas
+                Lista de todos os alunos cadastrados no sistema
               </CardDescription>
             </div>
             <div className="relative w-full md:w-80">
@@ -168,7 +206,9 @@ const StudentsManagement = () => {
                   <TableHead>Turma</TableHead>
                   <TableHead>Progresso</TableHead>
                   <TableHead>Streak</TableHead>
-                  <TableHead>Matrícula</TableHead>
+                  <TableHead>Cadastro</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -194,7 +234,11 @@ const StudentsManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{student.class_name}</Badge>
+                      {student.class_name ? (
+                        <Badge variant="outline">{student.class_name}</Badge>
+                      ) : (
+                        <Badge variant="secondary">Sem turma</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -215,8 +259,42 @@ const StudentsManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(student.enrolled_at).toLocaleDateString('pt-BR')}
+                        {new Date(student.created_at).toLocaleDateString('pt-BR')}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {student.enrollment_status ? (
+                        <Badge variant={student.enrollment_status === 'approved' ? 'default' : 'secondary'}>
+                          {student.enrollment_status === 'approved' ? 'Ativo' : 'Pendente'}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Não matriculado</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => handleResetPassword(student.id, student.email)}
+                          >
+                            Redefinir Senha
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDeleteStudent(student.id, student.full_name)}
+                          >
+                            Excluir Aluno
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -229,7 +307,7 @@ const StudentsManagement = () => {
               <p className="text-muted-foreground">
                 {searchTerm 
                   ? 'Nenhum aluno corresponde à sua busca' 
-                  : 'Você ainda não tem alunos matriculados em suas turmas'}
+                  : 'Nenhum aluno cadastrado no sistema'}
               </p>
             </div>
           )}

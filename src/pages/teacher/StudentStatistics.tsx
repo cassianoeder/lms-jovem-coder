@@ -11,19 +11,18 @@ import {
   TrendingUp, 
   Users, 
   CheckCircle,
-  Clock
+  Clock,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface ClassStats {
-  id: string;
-  name: string;
+interface SystemStats {
   total_students: number;
   active_students: number;
+  pending_students: number;
   average_xp: number;
   average_level: number;
   average_streak: number;
-  completion_rate: number;
 }
 
 interface StudentProgress {
@@ -35,12 +34,19 @@ interface StudentProgress {
   completed_lessons: number;
   total_lessons: number;
   completion_rate: number;
-  class_name: string;
+  class_name: string | null;
 }
 
 const StudentStatistics = () => {
   const { user } = useAuth();
-  const [classStats, setClassStats] = useState<ClassStats[]>([]);
+  const [systemStats, setSystemStats] = useState<SystemStats>({
+    total_students: 0,
+    active_students: 0,
+    pending_students: 0,
+    average_xp: 0,
+    average_level: 0,
+    average_streak: 0
+  });
   const [topStudents, setTopStudents] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,120 +60,74 @@ const StudentStatistics = () => {
     try {
       setLoading(true);
       
-      // First, get classes taught by this teacher
-      const { data: classes, error: classesError } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('teacher_id', user?.id);
-
-      if (classesError) throw classesError;
-
-      if (!classes || classes.length === 0) {
-        setClassStats([]);
-        setTopStudents([]);
-        setLoading(false);
-        return;
-      }
-
-      const classIds = classes.map(cls => cls.id);
-
-      // Fetch class statistics
-      const classStatsPromises = classIds.map(async (classId) => {
-        // Get class details
-        const { data: classData, error: classError } = await supabase
-          .from('classes')
-          .select('name')
-          .eq('id', classId)
-          .single();
-
-        if (classError) throw classError;
-
-        // Get total students
-        const { count: totalStudents, error: studentsError } = await supabase
-          .from('enrollments')
-          .select('*', { count: 'exact' })
-          .eq('class_id', classId)
-          .eq('status', 'approved');
-
-        if (studentsError) throw studentsError;
-
-        // Get student progress for completion rate
-        const { data: progressData, error: progressError } = await supabase
-          .from('student_progress')
-          .select('completed')
-          .in('user_id', 
-            (await supabase
-              .from('enrollments')
-              .select('student_id')
-              .eq('class_id', classId)
-              .eq('status', 'approved')
-            ).data?.map(e => e.student_id) || []
-          );
-
-        if (progressError) throw progressError;
-
-        const totalProgressItems = progressData?.length || 0;
-        const completedItems = progressData?.filter(p => p.completed).length || 0;
-        const completionRate = totalProgressItems > 0 
-          ? Math.round((completedItems / totalProgressItems) * 100) 
-          : 0;
-
-        return {
-          id: classId,
-          name: classData.name,
-          total_students: totalStudents || 0,
-          active_students: totalStudents || 0,
-          average_xp: 0, // Will be calculated separately
-          average_level: 0, // Will be calculated separately
-          average_streak: 0, // Will be calculated separately
-          completion_rate: completionRate
-        };
-      });
-
-      const resolvedClassStats = await Promise.all(classStatsPromises);
-      setClassStats(resolvedClassStats);
-
-      // Fetch top students from all classes
+      // Fetch system-wide student statistics
       const { data: studentsData, error: studentsError } = await supabase
-        .from('enrollments')
+        .from('profiles')
         .select(`
-          student_id,
-          class_id,
-          classes (
-            name
-          ),
-          profiles:user_id (
-            full_name
-          ),
-          student_xp:user_id (
+          user_id,
+          full_name,
+          student_xp (
             total_xp,
             level
           ),
-          streaks:user_id (
+          streaks (
             current_streak
+          ),
+          enrollments (
+            status,
+            classes (
+              name
+            )
           )
-        `)
-        .in('class_id', classIds)
-        .eq('status', 'approved')
-        .limit(10);
+        `);
 
       if (studentsError) throw studentsError;
 
-      // Transform student data
-      const transformedStudents = studentsData.map((enrollment: any) => {
+      // Calculate system statistics
+      const totalStudents = studentsData.length;
+      const activeStudents = studentsData.filter((s: any) => 
+        s.enrollments?.some((e: any) => e.status === 'approved')
+      ).length;
+      const pendingStudents = studentsData.filter((s: any) => 
+        s.enrollments?.some((e: any) => e.status === 'pending')
+      ).length;
+      
+      // Calculate averages
+      const totalXP = studentsData.reduce((sum: number, s: any) => sum + (s.student_xp?.[0]?.total_xp || 0), 0);
+      const totalLevel = studentsData.reduce((sum: number, s: any) => sum + (s.student_xp?.[0]?.level || 1), 0);
+      const totalStreak = studentsData.reduce((sum: number, s: any) => sum + (s.streaks?.[0]?.current_streak || 0), 0);
+      
+      const averageXP = totalStudents > 0 ? Math.round(totalXP / totalStudents) : 0;
+      const averageLevel = totalStudents > 0 ? Math.round(totalLevel / totalStudents) : 0;
+      const averageStreak = totalStudents > 0 ? Math.round(totalStreak / totalStudents) : 0;
+
+      setSystemStats({
+        total_students: totalStudents,
+        active_students: activeStudents,
+        pending_students: pendingStudents,
+        average_xp: averageXP,
+        average_level: averageLevel,
+        average_streak: averageStreak
+      });
+
+      // Transform student data for top students list
+      const transformedStudents = studentsData.map((profile: any) => {
+        const enrollment = profile.enrollments?.[0] || null;
+        
         return {
-          id: enrollment.student_id,
-          full_name: enrollment.profiles?.full_name || 'Nome não disponível',
-          total_xp: enrollment.student_xp?.total_xp || 0,
-          level: enrollment.student_xp?.level || 1,
-          current_streak: enrollment.streaks?.current_streak || 0,
+          id: profile.user_id,
+          full_name: profile.full_name || 'Nome não disponível',
+          total_xp: profile.student_xp?.[0]?.total_xp || 0,
+          level: profile.student_xp?.[0]?.level || 1,
+          current_streak: profile.streaks?.[0]?.current_streak || 0,
           completed_lessons: 0, // Will be calculated separately
           total_lessons: 0, // Will be calculated separately
           completion_rate: 0, // Will be calculated separately
-          class_name: enrollment.classes?.name || 'Turma não especificada'
+          class_name: enrollment?.classes?.name || null
         };
       })
-      .sort((a: StudentProgress, b: StudentProgress) => b.total_xp - a.total_xp);
+      .sort((a: StudentProgress, b: StudentProgress) => b.total_xp - a.total_xp)
+      .slice(0, 10); // Top 10 students
 
       setTopStudents(transformedStudents);
     } catch (error) {
@@ -191,34 +151,32 @@ const StudentStatistics = () => {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Estatísticas dos Alunos</h2>
         <p className="text-muted-foreground">
-          Acompanhe o progresso e desempenho dos alunos em suas turmas
+          Acompanhe o progresso e desempenho de todos os alunos do sistema
         </p>
       </div>
 
-      {/* Class Statistics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Turmas</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{classStats.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Turmas ativas
-            </p>
-          </CardContent>
-        </Card>
-        
+      {/* System Statistics */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Alunos</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {classStats.reduce((sum, cls) => sum + cls.total_students, 0)}
-            </div>
+            <div className="text-2xl font-bold">{systemStats.total_students}</div>
+            <p className="text-xs text-muted-foreground">
+              Alunos cadastrados
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Alunos Ativos</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{systemStats.active_students}</div>
             <p className="text-xs text-muted-foreground">
               Alunos matriculados
             </p>
@@ -231,11 +189,7 @@ const StudentStatistics = () => {
             <Award className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {classStats.length > 0 
-                ? Math.round(classStats.reduce((sum, cls) => sum + cls.average_xp, 0) / classStats.length)
-                : 0}
-            </div>
+            <div className="text-2xl font-bold">{systemStats.average_xp}</div>
             <p className="text-xs text-muted-foreground">
               Pontos de experiência
             </p>
@@ -244,61 +198,53 @@ const StudentStatistics = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
+            <CardTitle className="text-sm font-medium">Nível Médio</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {classStats.length > 0 
-                ? Math.round(classStats.reduce((sum, cls) => sum + cls.completion_rate, 0) / classStats.length)
-                : 0}%
-            </div>
+            <div className="text-2xl font-bold">{systemStats.average_level}</div>
             <p className="text-xs text-muted-foreground">
-              Média das turmas
+              Nível médio dos alunos
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Streak Médio</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{systemStats.average_streak}</div>
+            <p className="text-xs text-muted-foreground">
+              Dias consecutivos estudando
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Alunos Pendentes</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{systemStats.pending_students}</div>
+            <p className="text-xs text-muted-foreground">
+              Aguardando aprovação
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Class Details */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {classStats.map((cls) => (
-          <Card key={cls.id}>
-            <CardHeader>
-              <CardTitle>{cls.name}</CardTitle>
-              <CardDescription>
-                Estatísticas da turma
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Alunos matriculados</span>
-                <span className="text-sm text-muted-foreground">{cls.total_students}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Taxa de conclusão</span>
-                <span className="text-sm text-muted-foreground">{cls.completion_rate}%</span>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progresso médio</span>
-                  <span>{cls.completion_rate}%</span>
-                </div>
-                <Progress value={cls.completion_rate} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       {/* Top Students */}
       <Card>
         <CardHeader>
-          <CardTitle>Principais Alunos</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Principais Alunos
+          </CardTitle>
           <CardDescription>
-            Alunos com melhor desempenho em suas turmas
+            Alunos com melhor desempenho no sistema
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -313,7 +259,11 @@ const StudentStatistics = () => {
                     <div>
                       <div className="font-medium">{student.full_name}</div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant="outline">{student.class_name}</Badge>
+                        {student.class_name ? (
+                          <Badge variant="outline">{student.class_name}</Badge>
+                        ) : (
+                          <Badge variant="secondary">Sem turma</Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -341,7 +291,7 @@ const StudentStatistics = () => {
               <Users className="w-12 h-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum aluno encontrado</h3>
               <p className="text-muted-foreground">
-                Não há alunos matriculados em suas turmas no momento
+                Não há alunos cadastrados no sistema no momento
               </p>
             </div>
           )}
